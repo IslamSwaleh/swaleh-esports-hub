@@ -1,0 +1,730 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWALEH eSPORTS HUB</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root {
+  --gold:#f5c518;
+  --black:#080808;
+  --panel:#171717;
+  --muted:#aaa;
+}
+*{box-sizing:border-box}
+body {
+  margin:0;background:var(--black);color:white;
+  font-family:Arial,sans-serif;
+}
+header {
+  text-align:center;padding:28px 12px;
+  background:linear-gradient(140deg,#000,#292000);
+  border-bottom:2px solid var(--gold);
+}
+header h1{color:var(--gold);margin:5px;font-size:27px}
+header p{color:#ddd}
+nav {
+  display:flex;gap:8px;overflow-x:auto;padding:12px;
+  background:#111;position:sticky;top:0;z-index:5;
+}
+nav button{white-space:nowrap;width:auto;margin:0}
+main{max-width:1050px;margin:auto;padding:14px}
+section {
+  background:var(--panel);padding:17px;
+  margin:15px 0;border-radius:13px;
+  border:1px solid #303030;
+}
+h2{color:var(--gold);margin-top:0}
+h3{color:var(--gold)}
+input,select {
+  width:100%;padding:12px;margin:7px 0;
+  background:#090909;color:white;
+  border:1px solid #555;border-radius:7px;
+}
+button {
+  background:var(--gold);color:#000;
+  border:0;padding:12px 16px;border-radius:7px;
+  font-weight:bold;cursor:pointer;margin:5px 0;
+}
+button.secondary{background:#333;color:white}
+button.danger{background:#9b2727;color:white}
+button:disabled{opacity:.5}
+.card {
+  padding:13px;margin:10px 0;
+  border:1px solid #444;border-radius:9px;
+  background:#101010;
+}
+.gold{color:var(--gold)}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+.grid {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+  gap:10px;
+}
+.stat {
+  background:#101010;padding:15px;border-radius:9px;
+  border:1px solid #444;text-align:center;
+}
+.stat strong{display:block;color:var(--gold);font-size:25px}
+canvas{max-height:300px;width:100%!important}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px;border-bottom:1px solid #444;text-align:left}
+.table-wrap{overflow-x:auto}
+#notice{padding:12px;color:var(--gold);text-align:center}
+footer{text-align:center;padding:25px;color:#888}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>SWALEH eSPORTS HUB</h1>
+  <p>WHERE LEGENDS ARE MADE</p>
+  <p>THE HOME OF eFOOTBALL COMPETITION</p>
+</header>
+
+<nav>
+  <button onclick="showSection('account')">Account</button>
+  <button onclick="showSection('profile')">My Profile</button>
+  <button onclick="showSection('tournaments')">Tournaments</button>
+  <button onclick="showSection('registrations')">Registrations</button>
+  <button onclick="showSection('leaderboard')">Leaderboard</button>
+  <button onclick="showSection('performance')">Graphs</button>
+  <button onclick="showSection('admin')">Admin</button>
+</nav>
+
+<div id="notice">Connecting to SWALEH eSPORTS HUB...</div>
+
+<main>
+<section id="account">
+  <h2>Gamer Account</h2>
+  <p class="muted">Create an account or login to participate.</p>
+  <input id="email" type="email" placeholder="Email address">
+  <input id="password" type="password" placeholder="Password (minimum 6 characters)">
+  <button onclick="signup()">Create Account</button>
+  <button onclick="login()">Login</button>
+  <button class="secondary" onclick="logout()">Logout</button>
+  <p id="accountMessage"></p>
+  <p id="currentUser" class="gold">Not logged in</p>
+</section>
+
+<section id="profile">
+  <h2>My Gamer Profile</h2>
+  <input id="fullName" placeholder="Full name">
+  <input id="gameUsername" placeholder="eFootball username">
+  <input id="whatsappNumber" placeholder="WhatsApp number (private)">
+  <input id="whatsappUsername" placeholder="WhatsApp username (private)">
+  <button onclick="saveProfile()">Save Gamer Profile</button>
+  <p id="profileMessage"></p>
+</section>
+
+<section id="tournaments">
+  <h2>Available Tournaments</h2>
+  <div id="tournamentList">Loading tournaments...</div>
+</section>
+
+<section id="registrations">
+  <h2>My Tournament Registrations</h2>
+  <div id="myRegistrations">Login to view registrations.</div>
+</section>
+
+<section id="leaderboard">
+  <h2>League Standings</h2>
+  <p class="muted">Rankings are calculated from recorded match results.</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Player</th><th>P</th><th>W</th><th>D</th>
+          <th>L</th><th>GF</th><th>GA</th><th>Pts</th>
+        </tr>
+      </thead>
+      <tbody id="standingsBody">
+        <tr><td colspan="8">No results yet.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="performance">
+  <h2>Player Performance Centre</h2>
+  <select id="playerSelect" onchange="loadPerformance()">
+    <option value="">Select a gamer</option>
+  </select>
+  <div class="grid">
+    <div class="stat"><strong id="played">0</strong>Matches</div>
+    <div class="stat"><strong id="wins">0</strong>Wins</div>
+    <div class="stat"><strong id="draws">0</strong>Draws</div>
+    <div class="stat"><strong id="losses">0</strong>Losses</div>
+    <div class="stat"><strong id="goalsFor">0</strong>Goals scored</div>
+    <div class="stat"><strong id="goalsAgainst">0</strong>Goals conceded</div>
+    <div class="stat"><strong id="winRate">0%</strong>Win rate</div>
+    <div class="stat"><strong id="points">0</strong>Points</div>
+  </div>
+  <section>
+    <h3>Wins, Draws & Losses</h3>
+    <canvas id="resultsChart"></canvas>
+  </section>
+  <section>
+    <h3>Goals Scored & Conceded</h3>
+    <canvas id="goalsChart"></canvas>
+  </section>
+  <section>
+    <h3>Recent Match Performance</h3>
+    <canvas id="formChart"></canvas>
+  </section>
+</section>
+
+<section id="admin">
+  <h2>Admin Dashboard</h2>
+  <p id="adminStatus" class="muted">Admin login required.</p>
+
+  <div id="adminTools" class="hidden">
+    <h3>Create Tournament</h3>
+    <input id="newTournamentName" placeholder="Tournament name">
+    <select id="newTournamentFormat">
+      <option value="league">League</option>
+      <option value="knockout">Knockout</option>
+    </select>
+    <button onclick="createTournament()">Create Tournament</button>
+
+    <h3>Registered Gamers</h3>
+    <button onclick="loadAdminRegistrations()">View All Registrations</button>
+    <div id="adminRegistrations"></div>
+
+    <h3>Record Match Result</h3>
+    <select id="matchTournament"></select>
+    <select id="homePlayer"></select>
+    <select id="awayPlayer"></select>
+    <input id="homeScore" type="number" min="0" placeholder="Home score">
+    <input id="awayScore" type="number" min="0" placeholder="Away score">
+    <button onclick="recordResult()">Save Confirmed Result</button>
+    <p id="resultMessage"></p>
+  </div>
+</section>
+</main>
+
+<footer>
+  SWALEH eSPORTS HUB<br>
+  WHERE LEGENDS ARE MADE
+</footer>
+
+<script>
+/* SUPABASE CONNECTION */
+const SUPABASE_URL = 'https://xbqawqhhijnbqgeoryqe.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OOuIHeyjm7EhJZqtXE-Tw_1u1oQYfd';
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let currentGamer = null;
+let allGamers = [];
+let allTournaments = [];
+let allMatches = [];
+let resultsChart = null;
+let goalsChart = null;
+let formChart = null;
+
+function message(id, text) {
+  document.getElementById(id).textContent = text;
+}
+
+function showSection(id) {
+  document.getElementById(id).scrollIntoView({
+    behavior:'smooth'
+  });
+}
+
+async function signup() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || password.length < 6) {
+    return message('accountMessage','Enter a valid email and password.');
+  }
+
+  const {error} = await db.auth.signUp({email,password});
+
+  message('accountMessage', error
+    ? error.message
+    : 'Account created. Check your email if confirmation is required.');
+}
+
+async function login() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const {error} = await db.auth.signInWithPassword({
+    email,password
+  });
+
+  message('accountMessage',error ? error.message : 'Login successful.');
+  if (!error) await refreshApp();
+}
+
+async function logout() {
+  const {error} = await db.auth.signOut();
+  message('accountMessage',error ? error.message : 'Logged out.');
+  await refreshApp();
+}
+
+async function getUser() {
+  const {data,error} = await db.auth.getUser();
+  if (error) return null;
+  return data.user;
+}
+
+async function saveProfile() {
+  const user = await getUser();
+
+  if (!user) return message('profileMessage','Login first.');
+
+  const full_name = document.getElementById('fullName').value.trim();
+  const game_username = document.getElementById('gameUsername').value.trim();
+
+  if (!full_name || !game_username) {
+    return message('profileMessage','Full name and eFootball username are required.');
+  }
+
+  const {error} = await db.from('gamers').upsert({
+    user_id:user.id,
+    full_name,
+    game_username,
+    whatsapp_number:document.getElementById('whatsappNumber').value.trim(),
+    whatsapp_username:document.getElementById('whatsappUsername').value.trim()
+  },{onConflict:'user_id'});
+
+  message('profileMessage',error ? error.message : 'Profile saved successfully.');
+
+  if (!error) await refreshApp();
+}
+
+async function loadProfile() {
+  const user = await getUser();
+  currentGamer = null;
+
+  if (!user) return;
+
+  const {data,error} = await db.from('gamers')
+    .select('*')
+    .eq('user_id',user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  currentGamer = data;
+
+  if (data) {
+    document.getElementById('fullName').value = data.full_name || '';
+    document.getElementById('gameUsername').value = data.game_username || '';
+    document.getElementById('whatsappNumber').value = data.whatsapp_number || '';
+    document.getElementById('whatsappUsername').value = data.whatsapp_username || '';
+  }
+}
+
+async function loadGamers() {
+  const {data,error} = await db.from('public_gamers')
+    .select('id,full_name,game_username')
+    .order('full_name');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  allGamers = data || [];
+
+  const select = document.getElementById('playerSelect');
+  const home = document.getElementById('homePlayer');
+  const away = document.getElementById('awayPlayer');
+
+  [select,home,away].forEach(s => {
+    s.innerHTML = '<option value="">Select gamer</option>';
+  });
+
+  allGamers.forEach(g => {
+    const label = g.full_name + ' (' + g.game_username + ')';
+
+    [select,home,away].forEach(s => {
+      const option = document.createElement('option');
+      option.value = g.id;
+      option.textContent = label;
+      s.appendChild(option);
+    });
+  });
+}
+
+async function loadTournaments() {
+  const {data,error} = await db.from('tournaments')
+    .select('*')
+    .order('created_at',{ascending:false});
+
+  const box = document.getElementById('tournamentList');
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  allTournaments = data || [];
+
+  box.innerHTML = '';
+
+  const adminSelect = document.getElementById('matchTournament');
+  adminSelect.innerHTML = '<option value="">Select tournament</option>';
+
+  allTournaments.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const title = document.createElement('h3');
+    title.textContent = t.name;
+
+    const details = document.createElement('p');
+    details.textContent = t.format.toUpperCase() + ' | ' + (t.status || 'upcoming');
+
+    const button = document.createElement('button');
+    button.textContent = 'Register Now';
+    button.onclick = () => registerTournament(t.id);
+
+    card.append(title,details,button);
+    box.appendChild(card);
+
+    const option = document.createElement('option');
+    option.value = t.id;
+    option.textContent = t.name;
+    adminSelect.appendChild(option);
+  });
+
+  if (!allTournaments.length) {
+    box.textContent = 'No tournaments available yet.';
+  }
+}
+
+async function registerTournament(tournamentId) {
+  const user = await getUser();
+
+  if (!user) return alert('Login first to register.');
+
+  if (!currentGamer) {
+    return alert('Please complete and save your gamer profile first.');
+  }
+
+  const {error} = await db.from('tournament_registrations').insert({
+    tournament_id:tournamentId,
+    gamer_id:currentGamer.id,
+    user_id:user.id
+  });
+
+  if (error) {
+    return alert(error.code === '23505'
+      ? 'You are already registered.'
+      : error.message);
+  }
+
+  alert('Tournament registration successful!');
+  await loadMyRegistrations();
+}
+
+async function loadMyRegistrations() {
+  const box = document.getElementById('myRegistrations');
+  const user = await getUser();
+
+  if (!user) {
+    box.textContent = 'Login to see your registrations.';
+    return;
+  }
+
+  const {data,error} = await db.from('tournament_registrations')
+    .select('tournament_id,registered_at')
+    .eq('user_id',user.id);
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  box.innerHTML = '';
+
+  (data || []).forEach(r => {
+    const tournament = allTournaments.find(t => t.id === r.tournament_id);
+    const p = document.createElement('p');
+    p.textContent = (tournament ? tournament.name : 'Tournament') +
+      ' — Registered';
+    box.appendChild(p);
+  });
+
+  if (!data.length) box.textContent = 'No registrations yet.';
+}
+
+async function checkAdmin() {
+  const user = await getUser();
+  const tools = document.getElementById('adminTools');
+
+  tools.classList.add('hidden');
+
+  if (user && user.app_metadata && user.app_metadata.role === 'admin') {
+    tools.classList.remove('hidden');
+    message('adminStatus','Admin access confirmed.');
+  } else {
+    message('adminStatus','Admin access only. Login using your admin account.');
+  }
+}
+
+async function createTournament() {
+  const name = document.getElementById('newTournamentName').value.trim();
+  const format = document.getElementById('newTournamentFormat').value;
+
+  if (!name) return alert('Enter tournament name.');
+
+  const {error} = await db.from('tournaments').insert({
+    name,format,status:'upcoming'
+  });
+
+  if (error) return alert(error.message);
+
+  alert('Tournament created!');
+  document.getElementById('newTournamentName').value = '';
+  await loadTournaments();
+}
+
+async function loadAdminRegistrations() {
+  const box = document.getElementById('adminRegistrations');
+  box.textContent = 'Loading...';
+
+  const {data,error} = await db.from('tournament_registrations')
+    .select('gamer_id,tournament_id,registered_at')
+    .order('registered_at',{ascending:false});
+
+  if (error) {
+    box.textContent = error.message;
+    return;
+  }
+
+  box.innerHTML = '';
+
+  for (const r of (data || [])) {
+    const gamer = allGamers.find(g => g.id === r.gamer_id);
+    const tournament = allTournaments.find(t => t.id === r.tournament_id);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const p = document.createElement('p');
+    p.textContent =
+      (gamer ? gamer.full_name : 'Gamer') +
+      ' | ' + (gamer ? gamer.game_username : '') +
+      ' | ' + (tournament ? tournament.name : 'Tournament');
+
+    card.appendChild(p);
+    box.appendChild(card);
+  }
+
+  if (!data || !data.length) box.textContent = 'No registrations yet.';
+}
+
+async function recordResult() {
+  const tournament_id = document.getElementById('matchTournament').value;
+  const home_gamer_id = document.getElementById('homePlayer').value;
+  const away_gamer_id = document.getElementById('awayPlayer').value;
+  const home_score = document.getElementById('homeScore').value;
+  const away_score = document.getElementById('awayScore').value;
+
+  if (!tournament_id || !home_gamer_id || !away_gamer_id ||
+      home_gamer_id === away_gamer_id || home_score === '' || away_score === '' ||
+      Number(home_score) < 0 || Number(away_score) < 0) {
+    return message('resultMessage','Enter valid match details.');
+  }
+
+  const {error} = await db.from('matches').insert({
+    tournament_id,
+    home_gamer_id,
+    away_gamer_id,
+    home_score:Number(home_score),
+    away_score:Number(away_score),
+    status:'completed'
+  });
+
+  message('resultMessage',error ? error.message : 'Match result saved.');
+
+  if (!error) await loadMatches();
+}
+
+async function loadMatches() {
+  const {data,error} = await db.from('matches')
+    .select('*')
+    .eq('status','completed');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  allMatches = data || [];
+  buildStandings();
+  loadPerformance();
+}
+
+function calculateStats(gamerId) {
+  const stats = {
+    played:0,wins:0,draws:0,losses:0,
+    goalsFor:0,goalsAgainst:0,points:0,form:[]
+  };
+
+  allMatches.forEach(m => {
+    let gf,ga;
+
+    if (m.home_gamer_id === gamerId) {
+      gf = m.home_score; ga = m.away_score;
+    } else if (m.away_gamer_id === gamerId) {
+      gf = m.away_score; ga = m.home_score;
+    } else return;
+
+    stats.played++;
+    stats.goalsFor += gf;
+    stats.goalsAgainst += ga;
+
+    if (gf > ga) {
+      stats.wins++;
+      stats.points += 3;
+      stats.form.push('W');
+    } else if (gf === ga) {
+      stats.draws++;
+      stats.points++;
+      stats.form.push('D');
+    } else {
+      stats.losses++;
+      stats.form.push('L');
+    }
+  });
+
+  return stats;
+}
+
+function buildStandings() {
+  const body = document.getElementById('standingsBody');
+  body.innerHTML = '';
+
+  const rows = allGamers.map(g => ({
+    gamer:g,stats:calculateStats(g.id)
+  }));
+
+  rows.sort((a,b) =>
+    b.stats.points - a.stats.points ||
+    (b.stats.goalsFor - b.stats.goalsAgainst) -
+    (a.stats.goalsFor - a.stats.goalsAgainst)
+  );
+
+  rows.forEach(({gamer,stats}) => {
+    const tr = document.createElement('tr');
+
+    [
+      gamer.full_name,stats.played,stats.wins,stats.draws,
+      stats.losses,stats.goalsFor,stats.goalsAgainst,stats.points
+    ].forEach(value => {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.appendChild(td);
+    });
+
+    body.appendChild(tr);
+  });
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="8">No gamers or results yet.</td></tr>';
+  }
+}
+
+function drawChart(oldChart,canvasId,type,labels,datasets,options={}) {
+  if (oldChart) oldChart.destroy();
+
+  return new Chart(document.getElementById(canvasId),{
+    type,
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'white'}}},
+      scales:{
+        x:{ticks:{color:'white'},grid:{color:'#333'}},
+        y:{beginAtZero:true,ticks:{color:'white'},grid:{color:'#333'}}
+      },
+      ...options
+    }
+  });
+}
+
+function loadPerformance() {
+  const id = document.getElementById('playerSelect').value;
+  if (!id) return;
+
+  const s = calculateStats(id);
+
+  document.getElementById('played').textContent = s.played;
+  document.getElementById('wins').textContent = s.wins;
+  document.getElementById('draws').textContent = s.draws;
+  document.getElementById('losses').textContent = s.losses;
+  document.getElementById('goalsFor').textContent = s.goalsFor;
+  document.getElementById('goalsAgainst').textContent = s.goalsAgainst;
+  document.getElementById('points').textContent = s.points;
+  document.getElementById('winRate').textContent =
+    (s.played ? Math.round(s.wins/s.played*100) : 0) + '%';
+
+  resultsChart = drawChart(resultsChart,'resultsChart','bar',
+    ['Wins','Draws','Losses'],
+    [{label:'Matches',data:[s.wins,s.draws,s.losses]}]);
+
+  goalsChart = drawChart(goalsChart,'goalsChart','bar',
+    ['Goals scored','Goals conceded'],
+    [{label:'Goals',data:[s.goalsFor,s.goalsAgainst]}]);
+
+  const recent = s.form.slice(-5);
+  formChart = drawChart(formChart,'formChart','bar',
+    recent.map((v,i) => 'Match ' + (i+1)),
+    [{label:'Recent form (W=3, D=1, L=0)',
+      data:recent.map(v => v === 'W' ? 3 : v === 'D' ? 1 : 0)}]);
+}
+
+async function refreshApp() {
+  const user = await getUser();
+
+  document.getElementById('currentUser').textContent =
+    user ? 'Logged in: ' + user.email : 'Not logged in';
+
+  await loadProfile();
+  await loadGamers();
+  await loadTournaments();
+  await loadMyRegistrations();
+  await checkAdmin();
+  await loadMatches();
+
+  message('notice','SWALEH eSPORTS HUB is connected to Supabase.');
+}
+
+async function startApp() {
+  try {
+    await refreshApp();
+  } catch (error) {
+    message('notice','Connection error: ' + error.message);
+    console.error(error);
+  }
+}
+
+db.auth.onAuthStateChange(() => {
+  setTimeout(refreshApp,100);
+});
+
+startApp();
+</script>
+
+</body>
+</html>
