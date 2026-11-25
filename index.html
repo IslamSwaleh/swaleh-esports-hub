@@ -987,6 +987,21 @@ render();
   });
 })();
 </script>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const SUPABASE_URL = 'https://xbqawqhhijnbqgeoryqe.supabase.co';
+const SUPABASE_KEY = 'WEKA_PUBLISHABLE_KEY_YAKO_HAPA';
+
+window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+const SUPABASE_URL = 'https://xbqawqhhijnbqgeoryqe.supabase.co';
+
+</script>
 
 
 
@@ -1001,8 +1016,20 @@ render();
 
 
 
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+  const SUPABASE_URL = 'https://xbqawqhhijnbqgeoryqe.supabase.co';
 
+  const SUPABASE_KEY = 'sb_publishable_OOuIHeyjm7EhJZqtXE-Tw_1u1oQYfd';
+
+  window.supabaseClient = createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  console.log('SWALEH eSPORTS HUB connected to Supabase');
+</script>
   
 </body>
 </html>
