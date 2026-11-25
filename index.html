@@ -19,8 +19,19 @@
 * {
   box-sizing:border-box;
 }
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-body {
+  const SUPABASE_URL = 'https://xbqawqhhijnbqgeoryqe.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_OOuIHeyjm7EhJzZqtXE-Tw_1u1oQYfd';
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  window.supabaseClient = supabase;
+
+  console.log('SWALEH eSPORTS HUB connected to Supabase');
+</script>
+ </body {
   margin:0;
   background:var(--bg);
   color:var(--white);
