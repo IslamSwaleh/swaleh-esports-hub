@@ -576,11 +576,433 @@ render();
 </script>
 
 
+<style>
+:root {
+  --gold: #f5c518;
+  --black: #080808;
+  --panel: #161616;
+  --white: #ffffff;
+}
+#swaleh-app {
+  background: var(--black);
+  color: var(--white);
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  border-radius: 14px;
+}
+#swaleh-app * { box-sizing: border-box; }
+#swaleh-app h1, #swaleh-app h2 {
+  color: var(--gold);
+}
+#swaleh-app button {
+  background: var(--gold);
+  color: #000;
+  border: 0;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: bold;
+  width: 100%;
+  margin-top: 10px;
+}
+#swaleh-app input, #swaleh-app select {
+  width: 100%;
+  padding: 12px;
+  margin: 7px 0;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #111;
+  color: white;
+}
+#swaleh-app section {
+  background: var(--panel);
+  padding: 16px;
+  margin: 15px 0;
+  border-radius: 12px;
+}
+#swaleh-app .gold {
+  color: var(--gold);
+}
+#swaleh-app .hidden {
+  display: none;
+}
+</style>
+
+<div id="swaleh-app">
+  <header style="text-align:center;padding:15px">
+    <h1>SWALEH eSPORTS HUB</h1>
+    <p class="gold">WHERE LEGENDS ARE MADE</p>
+    <p>eFootball Tournament Platform</p>
+  </header>
+
+  <section id="auth-section">
+    <h2>Gamer Account</h2>
+
+    <input id="auth-email" type="email"
+      placeholder="Email address">
+
+    <input id="auth-password" type="password"
+      placeholder="Password (minimum 6 characters)">
+
+    <button onclick="hubSignup()">Create Account</button>
+    <button onclick="hubLogin()">Login</button>
+    <button onclick="hubLogout()">Logout</button>
+
+    <p id="auth-message"></p>
+  </section>
+
+  <section id="profile-section">
+    <h2>Gamer Profile</h2>
+
+    <input id="gamer-name"
+      placeholder="Full name">
+
+    <input id="game-name"
+      placeholder="eFootball username">
+
+    <input id="whatsapp-number"
+      placeholder="WhatsApp number">
+
+    <input id="whatsapp-username"
+      placeholder="WhatsApp username (optional)">
+
+    <button onclick="hubSaveProfile()">Save Profile</button>
+    <p id="profile-message"></p>
+  </section>
+
+  <section id="tournament-section">
+    <h2>Available Tournaments</h2>
+    <div id="tournament-list">Loading tournaments...</div>
+  </section>
+
+  <section id="my-registration">
+    <h2>My Registrations</h2>
+    <div id="my-registration-list">
+      Login to view your registrations.
+    </div>
+  </section>
+
+  <section id="admin-section">
+    <h2>Admin Dashboard</h2>
+    <p>Registered Gamers</p>
+    <button onclick="hubAdminLoad()">
+      View Tournament Registrations
+    </button>
+    <div id="admin-registrations"></div>
+  </section>
+</div>
+
+<script>
+(async function() {
+  const db = window.supabaseClient;
+
+  if (!db) {
+    document.getElementById("auth-message").textContent =
+      "Database connection not found. Check Supabase setup.";
+    return;
+  }
+
+  window.hubDB = db;
+
+  window.hubSignup = async function() {
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+
+    const { data, error } = await db.auth.signUp({
+      email, password
+    });
+
+    document.getElementById("auth-message").textContent =
+      error ? error.message :
+      "Account created. Check your email if confirmation is required.";
+  };
+
+  window.hubLogin = async function() {
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+
+    const { error } = await db.auth.signInWithPassword({
+      email, password
+    });
+
+    document.getElementById("auth-message").textContent =
+      error ? error.message : "Login successful!";
+
+    if (!error) await hubRefresh();
+  };
+
+  window.hubLogout = async function() {
+    const { error } = await db.auth.signOut();
+
+    document.getElementById("auth-message").textContent =
+      error ? error.message : "Logged out.";
+
+    await hubRefresh();
+  };
+
+  window.hubSaveProfile = async function() {
+    const { data: auth } = await db.auth.getUser();
+    const user = auth.user;
+
+    if (!user) {
+      document.getElementById("profile-message").textContent =
+        "Login first.";
+      return;
+    }
+
+    const full_name =
+      document.getElementById("gamer-name").value.trim();
+
+    const game_username =
+      document.getElementById("game-name").value.trim();
+
+    const whatsapp_number =
+      document.getElementById("whatsapp-number").value.trim();
+
+    const whatsapp_username =
+      document.getElementById("whatsapp-username").value.trim();
+
+    if (!full_name || !game_username) {
+      document.getElementById("profile-message").textContent =
+        "Full name and eFootball username are required.";
+      return;
+    }
+
+    const { error } = await db.from("gamers").upsert({
+      user_id: user.id,
+      full_name,
+      game_username,
+      whatsapp_number,
+      whatsapp_username
+    }, { onConflict: "user_id" });
+
+    document.getElementById("profile-message").textContent =
+      error ? error.message : "Profile saved successfully!";
+
+    if (!error) await hubRefresh();
+  };
+
+  async function hubGetGamer() {
+    const { data: auth } = await db.auth.getUser();
+    if (!auth.user) return null;
+
+    const { data, error } = await db.from("gamers")
+      .select("*")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  }
+
+  window.hubRegister = async function(tournamentId) {
+    try {
+      const { data: auth } = await db.auth.getUser();
+      const user = auth.user;
+
+      if (!user) {
+        alert("Login first to register.");
+        return;
+      }
+
+      const gamer = await hubGetGamer();
+
+      if (!gamer) {
+        alert("Save your gamer profile first.");
+        return;
+      }
+
+      const { error } = await db.from("tournament_registrations")
+        .insert({
+          tournament_id: tournamentId,
+          gamer_id: gamer.id,
+          user_id: user.id
+        });
+
+      if (error) {
+        if (error.code === "23505") {
+          alert("You are already registered for this tournament.");
+        } else {
+          alert(error.message);
+        }
+        return;
+      }
+
+      alert("Registration successful!");
+      await hubRefresh();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  async function hubLoadTournaments() {
+    const box = document.getElementById("tournament-list");
+
+    const { data, error } = await db.from("tournaments")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      box.textContent = error.message;
+      return;
+    }
+
+    if (!data.length) {
+      box.textContent = "No tournaments available yet.";
+      return;
+    }
+
+    box.innerHTML = "";
+
+    data.forEach(t => {
+      const card = document.createElement("div");
+      card.style.cssText =
+        "padding:12px;border:1px solid #444;border-radius:10px;margin:10px 0";
+
+      const title = document.createElement("h3");
+      title.style.color = "#f5c518";
+      title.textContent = t.name;
+
+      const format = document.createElement("p");
+      format.textContent = "Format: " + t.format;
+
+      const status = document.createElement("p");
+      status.textContent = "Status: " + (t.status || "upcoming");
+
+      const button = document.createElement("button");
+      button.textContent = "Register Now";
+      button.onclick = () => hubRegister(t.id);
+
+      card.append(title, format, status, button);
+      box.appendChild(card);
+    });
+  }
+
+  async function hubLoadMyRegistrations() {
+    const box = document.getElementById("my-registration-list");
+    const { data: auth } = await db.auth.getUser();
+
+    if (!auth.user) {
+      box.textContent = "Login to view your registrations.";
+      return;
+    }
+
+    const { data, error } = await db.from("tournament_registrations")
+      .select("registered_at, tournaments(name, format)")
+      .eq("user_id", auth.user.id);
+
+    if (error) {
+      box.textContent = error.message;
+      return;
+    }
+
+    box.innerHTML = "";
+
+    if (!data.length) {
+      box.textContent = "You have no registrations yet.";
+      return;
+    }
+
+    data.forEach(r => {
+      const p = document.createElement("p");
+      p.textContent =
+        (r.tournaments?.name || "Tournament") +
+        " — " + (r.tournaments?.format || "");
+      box.appendChild(p);
+    });
+  }
+
+  window.hubAdminLoad = async function() {
+    const box = document.getElementById("admin-registrations");
+
+    box.textContent = "Loading...";
+
+    const { data: auth } = await db.auth.getUser();
+
+    if (!auth.user) {
+      box.textContent = "Login as admin first.";
+      return;
+    }
+
+    const { data, error } = await db.from("tournament_registrations")
+      .select("registered_at, tournaments(name), gamers(full_name, game_username)")
+      .order("registered_at", { ascending: false });
+
+    if (error) {
+      box.textContent = error.message;
+      return;
+    }
+
+    box.innerHTML = "";
+
+    if (!data.length) {
+      box.textContent = "No registrations yet.";
+      return;
+    }
+
+    data.forEach(r => {
+      const card = document.createElement("div");
+      card.style.cssText =
+        "padding:10px;border-bottom:1px solid #444";
+
+      const p = document.createElement("p");
+      p.textContent =
+        (r.gamers?.full_name || "Gamer") +
+        " | " + (r.gamers?.game_username || "") +
+        " | " + (r.tournaments?.name || "Tournament");
+
+      card.appendChild(p);
+      box.appendChild(card);
+    });
+  };
+
+  async function hubRefresh() {
+    try {
+      const gamer = await hubGetGamer();
+
+      if (gamer) {
+        document.getElementById("gamer-name").value =
+          gamer.full_name || "";
+
+        document.getElementById("game-name").value =
+          gamer.game_username || "";
+
+        document.getElementById("whatsapp-number").value =
+          gamer.whatsapp_number || "";
+
+        document.getElementById("whatsapp-username").value =
+          gamer.whatsapp_username || "";
+      }
+
+      await hubLoadTournaments();
+      await hubLoadMyRegistrations();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  await hubRefresh();
+
+  db.auth.onAuthStateChange(() => {
+    setTimeout(hubRefresh, 0);
+  });
+})();
+</script>
 
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+  
 </body>
 </html>
