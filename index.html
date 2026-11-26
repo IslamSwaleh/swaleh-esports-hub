@@ -1300,12 +1300,15 @@ async function calculateTable(tournamentId){
   points:0
  }));
 
- const matches=state.matches.filter(m=>
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
+
+const matches=state.matches.filter(m=>
   m.tournament_id===tournamentId&&
   m.published_at&&
   m.home_score!==null&&
-  m.away_score!==null
- );
+  m.away_score!==null&&
+  (tournament?.format!=="swiss"||m.stage==="swiss")
+);
 
  matches.forEach(m=>{
   const home=table.find(p=>p.id===m.home_gamer_id);
