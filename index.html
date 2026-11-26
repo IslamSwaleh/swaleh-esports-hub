@@ -1285,44 +1285,6 @@ async function calculateTable(tournamentId){
 }
 
 
-function renderStandings(){
- const id=$("standingTournament").value;
- if(!id){
-  $("standingTable").innerHTML='<div class="empty">Select a tournament.</div>';
-  return;
- }
-
- const table=calculateTable(id);
-
- $("standingTable").innerHTML=table.length?`
-  <div class="tablewrap card">
-   <table>
-    <thead><tr>
-     <th>#</th><th>Gamer</th><th>P</th><th>W</th>
-     <th>D</th><th>L</th><th>GF</th><th>GA</th>
-     <th>GD</th><th>PTS</th>
-    </tr></thead>
-    <tbody>
-     ${table.map((p,i)=>`
-      <tr>
-       <td>${i+1}</td>
-       <td>${esc(p.name)}</td>
-       <td>${p.played}</td>
-       <td>${p.wins}</td>
-       <td>${p.draws}</td>
-       <td>${p.losses}</td>
-       <td>${p.gf}</td>
-       <td>${p.ga}</td>
-       <td>${p.gd}</td>
-       <td><strong style="color:var(--gold)">${p.points}</strong></td>
-      </tr>
-     `).join("")}
-    </tbody>
-   </table>
-  </div>
- `:'<div class="empty">No registered participants or published results yet.</div>';
-}
-
 /* =====================================
    STATISTICS
 ===================================== */
