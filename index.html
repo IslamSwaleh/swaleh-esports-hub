@@ -757,9 +757,10 @@ function openTournamentForm(t=null){
    <div class="field">
     <label>Format</label>
     <select id="tFormat">
-     <option value="league" ${t?.format==="league"?"selected":""}>League</option>
-     <option value="knockout" ${t?.format==="knockout"?"selected":""}>Knockout</option>
-    </select>
+ <option value="league" ${t?.format==="league"?"selected":""}>League</option>
+ <option value="knockout" ${t?.format==="knockout"?"selected":""}>Knockout</option>
+ <option value="swiss" ${t?.format==="swiss"?"selected":""}>Swiss (36 Gamers)</option>
+</select>
    </div>
 
    <div class="field">
