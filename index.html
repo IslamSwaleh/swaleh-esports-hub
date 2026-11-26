@@ -985,17 +985,27 @@ async function saveRegistrations(tournamentId){
 ===================================== */
 
 
+
 async function generateFixtures(tournamentId){
  if(!requireAdmin())return;
 
  const tournament=state.tournaments.find(t=>t.id===tournamentId);
  if(!tournament)return;
 
- // Use ALL registered hub gamers automatically.
- const ids=[...new Set(state.gamers.map(g=>g.id))];
+ // Get only gamers registered for this tournament.
+ const {data:registrations,error:regError}=await sb
+  .from("tournament_registrations")
+  .select("gamer_id")
+  .eq("tournament_id",tournamentId);
+
+ if(regError)return toast(regError.message,true);
+
+ const ids=[...new Set((registrations||[])
+  .map(r=>r.gamer_id)
+  .filter(Boolean))];
 
  if(ids.length<2)
-  return toast("Register at least two gamers first.",true);
+  return toast("At least two registered gamers are required.",true);
 
  const {data:existing,error:matchError}=await sb
   .from("matches")
@@ -1010,14 +1020,12 @@ async function generateFixtures(tournamentId){
  let pairs=[];
 
  if(tournament.format==="league"){
-  // Every gamer plays every other gamer once.
   for(let i=0;i<ids.length;i++){
    for(let j=i+1;j<ids.length;j++){
     pairs.push([ids[i],ids[j]]);
    }
   }
  }else{
-  // Knockout: all gamers enter the first round.
   const shuffled=[...ids].sort(()=>Math.random()-.5);
 
   for(let i=0;i<shuffled.length;i+=2){
@@ -1025,7 +1033,7 @@ async function generateFixtures(tournamentId){
   }
  }
 
- const rows=pairs.map((pair,index)=>({
+ const rows=pairs.map(pair=>({
   tournament_id:tournamentId,
   home_gamer_id:pair[0],
   away_gamer_id:pair[1],
@@ -1042,10 +1050,11 @@ async function generateFixtures(tournamentId){
 
  if(insertError)return toast(insertError.message,true);
 
- toast("Fixtures generated for all "+ids.length+" gamers!");
+ toast("Fixtures generated for "+ids.length+" registered gamers!");
  closeModal();
  await loadMatches();
 }
+
 
 
 async function loadMatches(){
@@ -1227,42 +1236,71 @@ async function publishResult(matchId){
    LEAGUE STANDINGS
 ===================================== */
 
-function calculateTable(tournamentId){
- const regs=state.matches
-  .filter(m=>m.tournament_id===tournamentId);
 
- const registeredIds=new Set();
+async function calculateTable(tournamentId){
+ const {data:registrations,error:regError}=await sb
+  .from("tournament_registrations")
+  .select("gamer_id")
+  .eq("tournament_id",tournamentId);
 
- state.matches.filter(m=>m.tournament_id===tournamentId).forEach(m=>{
-  registeredIds.add(m.home_gamer_id);
-  if(m.away_gamer_id)registeredIds.add(m.away_gamer_id);
- });
+ if(regError){
+  console.error(regError);
+  toast("Could not load tournament registrations: "+regError.message,true);
+  return [];
+ }
 
- const table=[...registeredIds].map(id=>({
-  id,name:gamerName(id),played:0,wins:0,draws:0,losses:0,
-  gf:0,ga:0,gd:0,points:0
+ const registeredIds=[...new Set(
+  (registrations||[]).map(r=>r.gamer_id).filter(Boolean)
+ )];
+
+ const table=registeredIds.map(id=>({
+  id,
+  name:gamerName(id),
+  played:0,
+  wins:0,
+  draws:0,
+  losses:0,
+  gf:0,
+  ga:0,
+  gd:0,
+  points:0
  }));
 
- regs.filter(m=>m.published_at&&m.home_score!==null&&m.away_score!==null)
- .forEach(m=>{
+ const matches=state.matches.filter(m=>
+  m.tournament_id===tournamentId&&
+  m.published_at&&
+  m.home_score!==null&&
+  m.away_score!==null
+ );
+
+ matches.forEach(m=>{
   const home=table.find(p=>p.id===m.home_gamer_id);
   const away=table.find(p=>p.id===m.away_gamer_id);
+
   if(!home||!away)return;
 
   home.played++;
   away.played++;
-  home.gf+=m.home_score;
-  home.ga+=m.away_score;
-  away.gf+=m.away_score;
-  away.ga+=m.home_score;
+
+  home.gf+=Number(m.home_score);
+  home.ga+=Number(m.away_score);
+
+  away.gf+=Number(m.away_score);
+  away.ga+=Number(m.home_score);
 
   if(m.home_score>m.away_score){
-   home.wins++;home.points+=3;away.losses++;
+   home.wins++;
+   home.points+=3;
+   away.losses++;
   }else if(m.home_score<m.away_score){
-   away.wins++;away.points+=3;home.losses++;
+   away.wins++;
+   away.points+=3;
+   home.losses++;
   }else{
-   home.draws++;away.draws++;
-   home.points++;away.points++;
+   home.draws++;
+   away.draws++;
+   home.points++;
+   away.points++;
   }
  });
 
@@ -1272,6 +1310,7 @@ function calculateTable(tournamentId){
   b.points-a.points||b.gd-a.gd||b.gf-a.gf
  );
 }
+
 
 function renderStandings(){
  const id=$("standingTournament").value;
@@ -1315,56 +1354,51 @@ function renderStandings(){
    STATISTICS
 ===================================== */
 
-function renderStatistics(){
- const totals=state.gamers.map(g=>{
-  let played=0,wins=0,draws=0,losses=0,goals=0,conceded=0;
 
-  state.matches.filter(m=>
-   m.published_at&&
-   (m.home_gamer_id===g.id||m.away_gamer_id===g.id)
-  ).forEach(m=>{
-   const home=m.home_gamer_id===g.id;
-   const own=home?m.home_score:m.away_score;
-   const opp=home?m.away_score:m.home_score;
-   if(own===null||opp===null)return;
+async function renderStandings(){
+ const id=$("standingTournament").value;
 
-   played++;
-   goals+=own;
-   conceded+=opp;
-   if(own>opp)wins++;
-   else if(own===opp)draws++;
-   else losses++;
-  });
+ if(!id){
+  $("standingTable").innerHTML='<div class="empty">Select a tournament.</div>';
+  return;
+ }
 
-  return {...g,played,wins,draws,losses,goals,conceded};
- });
+ $("standingTable").innerHTML='<div class="empty">Loading standings...</div>';
 
- totals.sort((a,b)=>b.wins-a.wins||b.goals-a.goals);
+ const table=await calculateTable(id);
 
- $("statisticsList").innerHTML=totals.length?`
+ // Prevent showing old tournament data if selection changed.
+ if($("standingTournament").value!==id)return;
+
+ $("standingTable").innerHTML=table.length?`
   <div class="tablewrap card">
    <table>
     <thead><tr>
-     <th>Gamer</th><th>MP</th><th>W</th>
+     <th>#</th><th>Gamer</th><th>P</th><th>W</th>
      <th>D</th><th>L</th><th>GF</th><th>GA</th>
+     <th>GD</th><th>PTS</th>
     </tr></thead>
     <tbody>
-     ${totals.map(p=>`
+     ${table.map((p,i)=>`
       <tr>
-       <td>${esc(p.full_name)}</td>
+       <td>${i+1}</td>
+       <td>${esc(p.name)}</td>
        <td>${p.played}</td>
        <td>${p.wins}</td>
        <td>${p.draws}</td>
        <td>${p.losses}</td>
-       <td>${p.goals}</td>
-       <td>${p.conceded}</td>
+       <td>${p.gf}</td>
+       <td>${p.ga}</td>
+       <td>${p.gd}</td>
+       <td><strong style="color:var(--gold)">${p.points}</strong></td>
       </tr>
      `).join("")}
     </tbody>
    </table>
   </div>
- `:'<div class="empty">No statistics available.</div>';
+ `:'<div class="empty">No registered participants or published results yet.</div>';
 }
+
 
 /* =====================================
    HEAD TO HEAD
