@@ -506,7 +506,7 @@ function openGamerForm(g=null){
   if(g){
    result=await sb.from("gamers").update(payload).eq("id",g.id);
   }else{
-   payload.user_id=state.user.id;
+   payload.user_id=null;
    result=await sb.from("gamers").insert(payload);
   }
 
