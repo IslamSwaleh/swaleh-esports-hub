@@ -867,52 +867,46 @@ async function saveRegistrations(tournamentId){
    FIXTURE GENERATION
 ===================================== */
 
+
 async function generateFixtures(tournamentId){
  if(!requireAdmin())return;
 
  const tournament=state.tournaments.find(t=>t.id===tournamentId);
  if(!tournament)return;
 
- const {data:regs,error}=await sb.from("tournament_registrations")
-  .select("gamer_id,group_name,seed")
+ // Use ALL registered hub gamers automatically.
+ const ids=[...new Set(state.gamers.map(g=>g.id))];
+
+ if(ids.length<2)
+  return toast("Register at least two gamers first.",true);
+
+ const {data:existing,error:matchError}=await sb
+  .from("matches")
+  .select("id")
   .eq("tournament_id",tournamentId);
 
- if(error)return toast(error.message,true);
-
- const ids=[...new Set((regs||[]).map(r=>r.gamer_id))];
-
- if(ids.length<2)return toast("Register at least two gamers first.",true);
-
- const {data:existing,error:matchError}=await sb.from("matches")
-  .select("id").eq("tournament_id",tournamentId);
-
  if(matchError)return toast(matchError.message,true);
- if(existing?.length){
+
+ if(existing?.length)
   return toast("Fixtures already exist. Avoid generating duplicates.",true);
- }
 
  let pairs=[];
 
  if(tournament.format==="league"){
-  // Single round-robin, capped by max_fixtures.
+  // Every gamer plays every other gamer once.
   for(let i=0;i<ids.length;i++){
    for(let j=i+1;j<ids.length;j++){
     pairs.push([ids[i],ids[j]]);
    }
   }
  }else{
-  // Knockout first round; odd numbers receive a bye.
+  // Knockout: all gamers enter the first round.
   const shuffled=[...ids].sort(()=>Math.random()-.5);
-  if(shuffled.length%2){
-   pairs.push([shuffled[shuffled.length-1],null]);
-  }
-  for(let i=0;i<shuffled.length-1;i+=2){
-   pairs.push([shuffled[i],shuffled[i+1]]);
+
+  for(let i=0;i<shuffled.length;i+=2){
+   pairs.push([shuffled[i],shuffled[i+1]||null]);
   }
  }
-
- const max=Number(tournament.max_fixtures)||38;
- pairs=pairs.slice(0,max);
 
  const rows=pairs.map((pair,index)=>({
   tournament_id:tournamentId,
@@ -928,12 +922,14 @@ async function generateFixtures(tournamentId){
  }));
 
  const {error:insertError}=await sb.from("matches").insert(rows);
+
  if(insertError)return toast(insertError.message,true);
 
- toast("Fixtures generated successfully!");
+ toast("Fixtures generated for all "+ids.length+" gamers!");
  closeModal();
  await loadMatches();
 }
+
 
 async function loadMatches(){
  const {data,error}=await sb.from("matches")
