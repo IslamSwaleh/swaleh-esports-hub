@@ -1178,14 +1178,19 @@ async function openScoreForm(matchId){
   const oldHome=m.home_score;
   const oldAway=m.away_score;
 
-  const {error}=await sb.from("matches").update({
-   home_score:home,
-   away_score:away,
-   status:"completed",
-   published_at:null
-  }).eq("id",matchId);
+const {data,error}=await sb.from("matches").update({
+ home_score:home,
+ away_score:away,
+ status:"completed",
+ published_at:null
+}).eq("id",matchId)
+.select("id,home_score,away_score");
 
-  if(error)return toast(error.message,true);
+if(error)return toast(error.message,true);
+
+if(!data||!data.length){
+ return toast("Score was not saved. Check your database permissions.",true);
+}
 
   // Record score change for accountability.
   await sb.from("result_audit_logs").insert({
