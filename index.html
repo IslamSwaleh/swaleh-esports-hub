@@ -403,14 +403,24 @@ async function loadGamers(){
  updateOverview();
  fillGamerSelects();
 }
+ 
+function renderGamers(){
+ async function loadGamers(){
+ const isAdmin = state.isAdmin;
+
+ const table = isAdmin ? "gamers" : "public_gamers";
+
+ const columns = isAdmin
+  ? "*"
+  : "id, full_name, game_username, avatar_url, created_at";
 
  const {data,error}=await sb
-  .from("gamers")
-  .select("*")
+  .from(table)
+  .select(columns)
   .order("created_at",{ascending:false});
 
  if(error){
-  console.error(error);
+  console.error("GAMER LOADING ERROR:",error);
   toast("Could not load gamers: "+error.message,true);
   return;
  }
@@ -420,8 +430,6 @@ async function loadGamers(){
  updateOverview();
  fillGamerSelects();
 }
-
-function renderGamers(){
  const search=($("gamerSearch")?.value||"").toLowerCase();
 
  const list=state.gamers.filter(g=>
