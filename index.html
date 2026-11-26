@@ -1191,7 +1191,11 @@ if(error)return toast(error.message,true);
 if(!data||!data.length){
  return toast("Score was not saved. Check your database permissions.",true);
 }
+state.matches=state.matches.map(x=>
+ x.id===matchId?{...x,...data[0]}:x
+);
 
+renderFixtures();
   // Record score change for accountability.
   await sb.from("result_audit_logs").insert({
    match_id:matchId,
