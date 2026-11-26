@@ -670,12 +670,8 @@ function openTournamentForm(t=null){
     </select>
    </div>
    <div class="field">
-    <label>Description</label>
-    <textarea id="tDescription">${esc(t?.description||"")}</textarea>
-   </div>
-   <div class="field">
     <label>Start Date</label>
-    <input type="datetime-local" id="tDate" value="${t?.start_date?new Date(t.start_date).toISOString().slice(0,16):""}">
+    start_date:t?.start_date || new Date().toISOString(),
    </div>
    <div class="field">
     <label>Maximum Fixtures</label>
