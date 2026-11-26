@@ -467,22 +467,6 @@ function openAuthModal() {
         <button type="button" class="btn btn-ghost" onclick="closeModal()">Cancel</button>
         <button type="submit" class="btn">Login</button>
       </div>
-    </form>
-  `);
-}
-
-async function signInAdmin(e) {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPass').value;
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) return toast(error.message, true);
-  await checkAuth();
-  if (!state.isAdmin) {
-    await sb.auth.signOut();
-    await checkAuth();
-    return toast('Access denied: Account is not listed in admin_users.', true);
-  }
   closeModal();
   toast('Welcome back, Admin.');
   await loadAllData();
@@ -509,7 +493,13 @@ async function loadAllData() {
     sb.from('matches').select('*').order('scheduled_at', { ascending: true }),
     sb.from('hall_of_fame').select('*').order('created_at', { ascending: false }),
     sb.from('notifications').select('*').order('created_at', { ascending: false }).limit(50)
-  ]);
+  ]);await checkAuth();
+
+if (state.adminCheckError) {
+  return toast('Admin database error: ' + state.adminCheckError, true);
+}
+
+if (!state.isAdmin) 
 
   state.gamers = gRes.data || [];
   state.tournaments = tRes.data || [];
