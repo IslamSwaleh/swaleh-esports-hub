@@ -1253,6 +1253,7 @@ function renderStatistics(){
    HEAD TO HEAD
 ===================================== */
 
+
 function showHeadToHead(){
  const one=$("h2hOne").value;
  const two=$("h2hTwo").value;
@@ -1261,43 +1262,268 @@ function showHeadToHead(){
   return toast("Select two different gamers.",true);
  }
 
- let played=0,winsOne=0,winsTwo=0,draws=0;
- let goalsOne=0,goalsTwo=0;
+ const playerOne=gamerName(one);
+ const playerTwo=gamerName(two);
 
- state.matches.filter(m=>
-  m.published_at&&
-  ((m.home_gamer_id===one&&m.away_gamer_id===two)||
-   (m.home_gamer_id===two&&m.away_gamer_id===one))
- ).forEach(m=>{
+ const matches=state.matches
+  .filter(m=>
+   m.published_at&&
+   m.home_score!==null&&
+   m.away_score!==null&&
+   ((m.home_gamer_id===one&&m.away_gamer_id===two)||
+    (m.home_gamer_id===two&&m.away_gamer_id===one))
+  )
+  .sort((a,b)=>new Date(a.published_at)-new Date(b.published_at));
+
+ let A={wins:0,draws:0,losses:0,scored:0,conceded:0,points:0};
+ let B={wins:0,draws:0,losses:0,scored:0,conceded:0,points:0};
+
+ const history=[];
+
+ matches.forEach((m,i)=>{
   const firstHome=m.home_gamer_id===one;
-  const a=firstHome?m.home_score:m.away_score;
-  const b=firstHome?m.away_score:m.home_score;
+  const a=Number(firstHome?m.home_score:m.away_score);
+  const b=Number(firstHome?m.away_score:m.home_score);
 
-  if(a===null||b===null)return;
+  A.scored+=a;
+  A.conceded+=b;
+  B.scored+=b;
+  B.conceded+=a;
 
-  played++;
-  goalsOne+=a;
-  goalsTwo+=b;
+  if(a>b){
+   A.wins++;
+   A.points+=3;
+   B.losses++;
+  }else if(b>a){
+   B.wins++;
+   B.points+=3;
+   A.losses++;
+  }else{
+   A.draws++;
+   B.draws++;
+   A.points++;
+   B.points++;
+  }
 
-  if(a>b)winsOne++;
-  else if(b>a)winsTwo++;
-  else draws++;
+  history.push({
+   match:i+1,
+   aPoints:A.points,
+   bPoints:B.points,
+   aGoals:a,
+   bGoals:b
+  });
  });
 
- $("h2hResult").innerHTML=`
-  <div class="card" style="margin-top:15px">
-   <h3>${esc(gamerName(one))} vs ${esc(gamerName(two))}</h3>
-   <div class="grid">
-    <div><div class="stat">${winsOne}</div><div>Wins</div></div>
-    <div><div class="stat">${draws}</div><div>Draws</div></div>
-    <div><div class="stat">${winsTwo}</div><div>Wins</div></div>
+ const played=matches.length;
+ const percent=(value,total)=>total?Math.round(value/total*100):0;
+ const rateA=percent(A.wins,played);
+ const rateB=percent(B.wins,played);
+ const gdA=A.scored-A.conceded;
+ const gdB=B.scored-B.conceded;
+
+ const maxGoals=Math.max(1,A.scored,A.conceded,B.scored,B.conceded);
+ const maxResults=Math.max(1,A.wins,A.draws,A.losses,B.wins,B.draws,B.losses);
+
+ const bar=(value,max,color)=>`
+  <div style="height:12px;background:var(--line);border-radius:20px;overflow:hidden;margin-top:7px">
+   <div style="height:100%;width:${value/max*100}%;background:${color};border-radius:20px"></div>
+  </div>
+ `;
+
+ const linePoints=(key)=>{
+  if(!history.length)return "";
+  const max=Math.max(3,...history.map(h=>Math.max(h.aPoints,h.bPoints)));
+  return history.map((h,i)=>{
+   const x=30+(i/Math.max(1,history.length-1))*440;
+   const y=155-(h[key]/max)*125;
+   return `${x},${y}`;
+  }).join(" ");
+ };
+
+ const pointDots=(key,color)=>{
+  return history.map((h,i)=>{
+   const x=30+(i/Math.max(1,history.length-1))*440;
+   const max=Math.max(3,...history.map(v=>Math.max(v.aPoints,v.bPoints)));
+   const y=155-(h[key]/max)*125;
+   return `<circle cx="${x}" cy="${y}" r="4" fill="${color}"/>`;
+  }).join("");
+ };
+
+ const svg=history.length?`
+  <svg viewBox="0 0 500 190" width="100%" role="img" aria-label="Cumulative points progress">
+   <g stroke="var(--line)" stroke-width="1">
+    <path d="M30 30H470 M30 90H470 M30 155H470"/>
+   </g>
+   <polyline points="${linePoints("aPoints")}" fill="none" stroke="#e5b83f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+   <polyline points="${linePoints("bPoints")}" fill="none" stroke="#38a5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+   ${pointDots("aPoints","#e5b83f")}
+   ${pointDots("bPoints","#38a5ff")}
+   <g fill="currentColor" font-size="10">
+    <text x="30" y="180">Match 1</text>
+    <text x="470" y="180" text-anchor="end">Match ${played}</text>
+   </g>
+  </svg>
+ `:`<div class="empty">No match history available yet.</div>`;
+
+ const statCard=(label,a,b)=>`
+  <div style="background:var(--line);border-radius:12px;padding:12px;text-align:center">
+   <div class="muted" style="font-size:12px">${label}</div>
+   <div style="display:flex;justify-content:space-around;gap:8px;margin-top:7px">
+    <strong style="color:#e5b83f">${a}</strong>
+    <strong style="color:#38a5ff">${b}</strong>
    </div>
-   <hr style="border-color:var(--line)">
-   <p>Matches played: ${played}</p>
-   <p>Goals: ${goalsOne} - ${goalsTwo}</p>
+  </div>
+ `;
+
+ const resultBar=(label,a,b)=>`
+  <div style="margin:15px 0">
+   <div style="display:flex;justify-content:space-between;gap:8px;font-size:13px">
+    <strong style="color:#e5b83f">${a}</strong>
+    <strong>${label}</strong>
+    <strong style="color:#38a5ff">${b}</strong>
+   </div>
+   <div style="display:flex;gap:4px;height:13px;margin-top:8px">
+    <div style="width:${a+b?(a/(a+b))*100:0}%;background:#e5b83f;border-radius:10px"></div>
+    <div style="width:${a+b?(b/(a+b))*100:0}%;background:#38a5ff;border-radius:10px"></div>
+   </div>
+  </div>
+ `;
+
+ $("h2hResult").innerHTML=`
+  <div class="card" style="margin-top:15px;padding:16px">
+
+   <div style="text-align:center">
+    <span class="pill">⚔ HEAD TO HEAD ANALYTICS</span>
+    <h2 style="margin:12px 0;color:var(--gold)">PLAYER COMPARISON</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+     <div style="flex:1">
+      <div style="font-size:16px;font-weight:bold;color:#e5b83f">${esc(playerOne)}</div>
+      <small class="muted">PLAYER 1</small>
+     </div>
+     <div style="font-size:23px;font-weight:900">VS</div>
+     <div style="flex:1">
+      <div style="font-size:16px;font-weight:bold;color:#38a5ff">${esc(playerTwo)}</div>
+      <small class="muted">PLAYER 2</small>
+     </div>
+    </div>
+   </div>
+
+   <hr style="border-color:var(--line);margin:18px 0">
+
+   <h3>🏆 Overall Statistics</h3>
+   <p class="muted" style="font-size:12px">All published matches between these two gamers</p>
+
+   <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+    ${statCard("Matches played",played,played)}
+    ${statCard("Wins",A.wins,B.wins)}
+    ${statCard("Draws",A.draws,B.draws)}
+    ${statCard("Losses",A.losses,B.losses)}
+    ${statCard("Goals scored",A.scored,B.scored)}
+    ${statCard("Goals conceded",A.conceded,B.conceded)}
+    ${statCard("Goal difference",gdA,gdB)}
+    ${statCard("Total points",A.points,B.points)}
+   </div>
+
+   <div style="margin-top:18px;padding:15px;border-radius:12px;background:var(--line)">
+    <div style="text-align:center;font-weight:bold;margin-bottom:12px">WIN RATE</div>
+    <div style="display:flex;justify-content:space-between">
+     <strong style="color:#e5b83f">${rateA}%</strong>
+     <strong style="color:#38a5ff">${rateB}%</strong>
+    </div>
+    <div style="display:flex;height:15px;border-radius:20px;overflow:hidden;background:var(--bg);margin-top:8px">
+     <div style="width:${rateA}% ;background:#e5b83f"></div>
+     <div style="width:${rateB}% ;background:#38a5ff"></div>
+    </div>
+   </div>
+
+   <hr style="border-color:var(--line);margin:20px 0">
+
+   <h3>⚽ 1. Goals Performance</h3>
+   <p class="muted" style="font-size:12px">Goals scored and conceded comparison</p>
+
+   ${resultBar("Goals scored",A.scored,B.scored)}
+   ${resultBar("Goals conceded",A.conceded,B.conceded)}
+
+   <div style="margin-top:18px">
+    <h3>📊 2. Win / Draw / Loss</h3>
+    <p class="muted" style="font-size:12px">Results and percentage distribution</p>
+
+    ${["wins","draws","losses"].map((key,i)=>{
+     const label=["Wins","Draws","Losses"][i];
+     const av=percent(A[key],played);
+     const bv=percent(B[key],played);
+     return `
+      <div style="margin:14px 0">
+       <div style="display:flex;justify-content:space-between;font-size:13px">
+        <strong style="color:#e5b83f">${A[key]} (${av}%)</strong>
+        <strong>${label}</strong>
+        <strong style="color:#38a5ff">${B[key]} (${bv}%)</strong>
+       </div>
+       <div style="display:flex;gap:4px;margin-top:7px">
+        <div style="height:11px;width:${av}%;background:#e5b83f;border-radius:10px"></div>
+        <div style="height:11px;width:${bv}%;background:#38a5ff;border-radius:10px"></div>
+       </div>
+      </div>
+     `;
+    }).join("")}
+   </div>
+
+   <hr style="border-color:var(--line);margin:20px 0">
+
+   <h3>📈 3. Points Progress</h3>
+   <p class="muted" style="font-size:12px">Cumulative points after every head-to-head match</p>
+
+   <div style="display:flex;gap:15px;font-size:12px;margin:12px 0">
+    <span style="color:#e5b83f">● ${esc(playerOne)}</span>
+    <span style="color:#38a5ff">● ${esc(playerTwo)}</span>
+   </div>
+
+   <div style="overflow:hidden;width:100%">
+    ${svg}
+   </div>
+
+   <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px">
+    ${statCard("Final points",A.points,B.points)}
+    ${statCard("Final win rate",rateA+"%",rateB+"%")}
+   </div>
+
+   <hr style="border-color:var(--line);margin:20px 0">
+
+   <h3>📋 Match History</h3>
+   <div style="overflow-x:auto">
+    <table style="width:100%">
+     <thead>
+      <tr>
+       <th>Match</th>
+       <th>Score</th>
+       <th>Winner</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${matches.length?matches.map((m,i)=>{
+       const firstHome=m.home_gamer_id===one;
+       const a=Number(firstHome?m.home_score:m.away_score);
+       const b=Number(firstHome?m.away_score:m.home_score);
+       const winner=a>b?playerOne:a<b?playerTwo:"Draw";
+       return `
+        <tr>
+         <td>${i+1}</td>
+         <td><strong>${a} - ${b}</strong></td>
+         <td>${esc(winner)}</td>
+        </tr>
+       `;
+      }).join(""):`<tr><td colspan="3">No published matches yet.</td></tr>`}
+     </tbody>
+    </table>
+   </div>
+
+   <p class="muted" style="font-size:11px;text-align:center;margin-top:16px">
+    SWALEH eSPORTS HUB • PLAYER ANALYTICS
+   </p>
   </div>
  `;
 }
+
 
 /* =====================================
    HALL OF FAME
