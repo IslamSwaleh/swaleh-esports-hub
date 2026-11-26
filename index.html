@@ -390,11 +390,40 @@ function updatePager() {
    AUTH & STRICT ADMIN VERIFICATION
    ========================================================= */
 async function checkAuth() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session }, error: sessionError } = await sb.auth.getSession();
+
   state.user = session?.user || null;
   state.isAdmin = false;
+  state.adminCheckError = null;
+
+  if (sessionError) {
+    state.adminCheckError = sessionError.message;
+  }
 
   if (state.user) {
+    const { data: adminRow, error: adminError } = await sb
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', state.user.id)
+      .maybeSingle();
+
+    if (adminError) {
+      state.adminCheckError = adminError.message;
+      console.error('ADMIN CHECK ERROR:', adminError);
+    } else if (adminRow) {
+      state.isAdmin = true;
+    }
+  }
+
+  document.body.classList.toggle('is-admin', state.isAdmin);
+  document.getElementById('adminLockNotice').style.display =
+    state.isAdmin ? 'none' : 'block';
+
+  const authBtn = document.getElementById('authBtn');
+  authBtn.innerHTML = state.isAdmin
+    ? '👑 Admin Active'
+    : (state.user ? '👤 Signed In' : '🔐 Admin');
+}
     // Verify strictly against admin_users table (never trust auth alone)
     const { data: adminRow } = await sb
       .from('admin_users')
