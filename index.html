@@ -267,44 +267,62 @@ $("mainNav").addEventListener("click",e=>{
  if(button)goTo(button.dataset.page);
 });
 
+
 function requireAdmin(){
  if(!state.isAdmin){
-  toast("Admin access required.",true);
+  toast("Please login to access the admin panel.",true);
+  openLogin();
   return false;
  }
  return true;
 }
 
 /* =====================================
-   AUTHENTICATION
+   AUTHENTICATION - ORGANIZER SYSTEM
 ===================================== */
 
 async function checkAuth(){
  const {data:{session},error:sessionError}=await sb.auth.getSession();
 
  state.user=session?.user||null;
+ state.role=null;
  state.isAdmin=false;
+ state.isOrganizer=false;
+ state.isSuperAdmin=false;
  state.adminCheckError=sessionError?.message||null;
 
  if(state.user){
   const {data:adminRow,error:adminError}=await sb
    .from("admin_users")
-   .select("user_id")
+   .select("user_id,role")
    .eq("user_id",state.user.id)
    .maybeSingle();
 
   if(adminError){
    state.adminCheckError=adminError.message;
-   console.error("ADMIN CHECK ERROR:",adminError);
+   console.error("ROLE CHECK ERROR:",adminError);
   }else if(adminRow){
-   state.isAdmin=true;
+   state.role=adminRow.role;
+   state.isSuperAdmin=adminRow.role==="super_admin";
+   state.isOrganizer=adminRow.role==="organizer";
+   state.isAdmin=state.isSuperAdmin||state.isOrganizer;
   }
  }
 
- $("authButton").textContent=state.isAdmin?"👑 Admin Active":"Admin Login";
+ $("authButton").textContent=
+  state.isSuperAdmin?"👑 Super Admin Active":
+  state.isOrganizer?"Organizer Active":"Login / Sign Up";
+
  $("logoutButton").classList.toggle("hidden",!state.user);
  $("adminLockNotice").classList.toggle("hidden",state.isAdmin);
  $("adminDashboard").classList.toggle("hidden",!state.isAdmin);
+
+ const adminHeading=document.querySelector("#admin .heading");
+ if(adminHeading){
+  adminHeading.textContent=state.isSuperAdmin
+   ?"SUPER ADMIN CONTROL CENTRE"
+   :"ORGANIZER CONTROL CENTRE";
+ }
 
  document.querySelectorAll(".admin-only").forEach(el=>{
   el.classList.toggle("hidden",!state.isAdmin);
@@ -319,7 +337,7 @@ function openLogin(){
   return;
  }
 
- openModal("ADMIN LOGIN",`
+ openModal("ACCOUNT LOGIN",`
   <form id="loginForm">
    <div class="field">
     <label>Email</label>
@@ -329,11 +347,96 @@ function openLogin(){
     <label>Password</label>
     <input type="password" id="loginPassword" required autocomplete="current-password">
    </div>
-   <button class="btn" type="submit">Login Securely</button>
+   <button class="btn" type="submit">Login</button>
   </form>
+
+  <div class="notice">
+   New to SWALEH eSPORTS HUB?
+   <p>Create your own Organizer account.</p>
+   <button class="btn secondary" onclick="openSignup()">
+    Create Organizer Account
+   </button>
+  </div>
  `);
 
  $("loginForm").addEventListener("submit",signInAdmin);
+}
+
+function openSignup(){
+ openModal("CREATE ORGANIZER ACCOUNT",`
+  <form id="signupForm">
+   <div class="field">
+    <label>Email Address</label>
+    <input type="email" id="signupEmail" required autocomplete="email">
+   </div>
+
+   <div class="field">
+    <label>Password</label>
+    <input type="password" id="signupPassword" required minlength="6" autocomplete="new-password">
+   </div>
+
+   <div class="field">
+    <label>Confirm Password</label>
+    <input type="password" id="signupConfirm" required minlength="6" autocomplete="new-password">
+   </div>
+
+   <button class="btn" type="submit">Create Account</button>
+  </form>
+
+  <p class="muted">By creating an account, you become an Organizer automatically.</p>
+
+  <button class="btn secondary" onclick="openLogin()">Already have an account? Login</button>
+ `);
+
+ $("signupForm").addEventListener("submit",signUpOrganizer);
+}
+
+async function signUpOrganizer(e){
+ e.preventDefault();
+
+ const email=$("signupEmail").value.trim();
+ const password=$("signupPassword").value;
+ const confirmPassword=$("signupConfirm").value;
+
+ if(password.length<6){
+  return toast("Password must have at least 6 characters.",true);
+ }
+
+ if(password!==confirmPassword){
+  return toast("Passwords do not match.",true);
+ }
+
+ const button=$("signupForm").querySelector('button[type="submit"]');
+ button.disabled=true;
+ button.textContent="Creating account...";
+
+ const {data,error}=await sb.auth.signUp({
+  email,
+  password
+ });
+
+ if(error){
+  button.disabled=false;
+  button.textContent="Create Account";
+  return toast(error.message,true);
+ }
+
+ if(data.session){
+  await checkAuth();
+
+  if(state.role!=="organizer"){
+   toast("Account created, but Organizer role could not be verified. Contact support.",true);
+   return;
+  }
+
+  closeModal();
+  toast("Welcome! Your Organizer account is ready.");
+  await loadAll();
+  goTo("admin");
+ }else{
+  closeModal();
+  toast("Account created! Check your email to confirm your account.");
+ }
 }
 
 async function signInAdmin(e){
@@ -352,28 +455,33 @@ async function signInAdmin(e){
  await checkAuth();
 
  if(state.adminCheckError){
-  toast("Admin database error: "+state.adminCheckError,true);
+  toast("Role database error: "+state.adminCheckError,true);
   return;
  }
 
  if(!state.isAdmin){
   await sb.auth.signOut();
   await checkAuth();
-  toast("Access denied: Account is not listed in admin_users.",true);
+  toast("Account role not found. Please contact support.",true);
   return;
  }
 
  closeModal();
- toast("Welcome, Admin!");
+
+ toast(state.isSuperAdmin?"Welcome, Super Admin!":"Welcome, Organizer!");
+
  await loadAll();
  goTo("admin");
 }
 
 async function logout(){
  const {error}=await sb.auth.signOut();
+
  if(error)return toast(error.message,true);
+
  await checkAuth();
  toast("Logged out successfully.");
+
  await loadAll();
  goTo("overview");
 }
@@ -409,32 +517,36 @@ async function loadGamers(){
  fillGamerSelects();
 }
  
+
 function renderGamers(){
- async function loadGamers(){
- const isAdmin = state.isAdmin;
+ const search=($("gamerSearch")?.value||"").toLowerCase();
 
- const table = isAdmin ? "gamers" : "public_gamers";
+ const list=state.gamers.filter(g=>
+  (g.full_name||"").toLowerCase().includes(search)||
+  (g.game_username||"").toLowerCase().includes(search)
+ );
 
- const columns = isAdmin
-  ? "*"
-  : "id, full_name, game_username, avatar_url, created_at";
-
- const {data,error}=await sb
-  .from(table)
-  .select(columns)
-  .order("created_at",{ascending:false});
-
- if(error){
-  console.error("GAMER LOADING ERROR:",error);
-  toast("Could not load gamers: "+error.message,true);
-  return;
- }
-
- state.gamers=data||[];
- renderGamers();
- updateOverview();
- fillGamerSelects();
+ $("gamerList").innerHTML=list.length?list.map(g=>`
+  <div class="card">
+   <div class="player">
+    <img class="avatar" src="${safeUrl(g.avatar_url)}" onerror="this.src='https://placehold.co/80x80/171717/f5c400?text=G'">
+    <div>
+     <strong>${esc(g.full_name)}</strong>
+     <div class="muted">@${esc(g.game_username)}</div>
+    </div>
+   </div>
+   <div class="muted" style="margin-top:10px">Joined: ${dateOnly(g.created_at)}</div>
+   <div class="row" style="margin-top:12px">
+    <button class="btn secondary small" onclick="viewGamer('${g.id}')">View Profile</button>
+    ${state.isAdmin?`
+     <button class="btn small" onclick="editGamer('${g.id}')">Edit</button>
+     <button class="btn danger small" onclick="deleteGamer('${g.id}')">Delete</button>
+    `:""}
+   </div>
+  </div>
+ `).join(""):`<div class="empty">No gamers found.</div>`;
 }
+
  const search=($("gamerSearch")?.value||"").toLowerCase();
 
  const list=state.gamers.filter(g=>
