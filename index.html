@@ -793,13 +793,25 @@ function openTournamentForm(t=null){
   if(!requireAdmin())return;
 
   const payload={
-   name:$("tName").value.trim(),
-   format:$("tFormat").value,
-   description:$("tDescription").value.trim(),
-   start_date:t?.start_date || new Date().toISOString(),
-   max_fixtures:Number($("tMax").value)||38,
-   status:$("tStatus").value
-  };
+ name:$("tName").value.trim(),
+ format:$("tFormat").value,
+ description:$("tDescription").value.trim(),
+ start_date:t?.start_date || new Date().toISOString(),
+ max_fixtures:Number($("tMax").value)||38,
+ rounds_count:$("tFormat").value==="swiss"?8:(t?.rounds_count||8),
+ qualifiers_per_group:$("tFormat").value==="swiss"?8:(t?.qualifiers_per_group||8),
+ rules_config:$("tFormat").value==="swiss"?{
+  system:"swiss_36",
+  total_players:36,
+  swiss_rounds:8,
+  direct_qualifiers:8,
+  playoff_positions:[9,24],
+  playoff_winners:8,
+  eliminated_positions:[25,36],
+  knockout_start:"round_of_16"
+ }:(t?.rules_config||{}),
+ status:$("tStatus").value
+};
 
   if(!payload.name)return toast("Enter tournament name.",true);
 
