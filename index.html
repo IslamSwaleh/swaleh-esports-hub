@@ -424,17 +424,7 @@ async function checkAuth() {
     ? '👑 Admin Active'
     : (state.user ? '👤 Signed In' : '🔐 Admin');
 }
-    // Verify strictly against admin_users table (never trust auth alone)
-    const { data: adminRow } = await sb
-      .from('admin_users')
-      .select('*')
-      .eq('user_id', state.user.id)
-      .maybeSingle();
-
-    if (adminRow && (adminRow.is_active === undefined || adminRow.is_active === true)) {
-      state.isAdmin = true;
-    }
-  }
+  
 
   document.body.classList.toggle('is-admin', state.isAdmin);
   document.getElementById('adminLockNotice').style.display = state.isAdmin ? 'none' : 'block';
