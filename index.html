@@ -377,7 +377,33 @@ async function logout(){
    GAMER MANAGEMENT
 ===================================== */
 
+
 async function loadGamers(){
+ const isAdmin = state.isAdmin;
+
+ const table = isAdmin ? "gamers" : "public_gamers";
+
+ const columns = isAdmin
+  ? "*"
+  : "id, full_name, game_username, avatar_url, created_at";
+
+ const {data,error}=await sb
+  .from(table)
+  .select(columns)
+  .order("created_at",{ascending:false});
+
+ if(error){
+  console.error("GAMER LOADING ERROR:",error);
+  toast("Could not load gamers: "+error.message,true);
+  return;
+ }
+
+ state.gamers=data||[];
+ renderGamers();
+ updateOverview();
+ fillGamerSelects();
+}
+
  const {data,error}=await sb
   .from("gamers")
   .select("*")
