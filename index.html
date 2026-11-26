@@ -547,33 +547,6 @@ function renderGamers(){
  `).join(""):`<div class="empty">No gamers found.</div>`;
 }
 
- const search=($("gamerSearch")?.value||"").toLowerCase();
-
- const list=state.gamers.filter(g=>
-  (g.full_name||"").toLowerCase().includes(search)||
-  (g.game_username||"").toLowerCase().includes(search)
- );
-
- $("gamerList").innerHTML=list.length?list.map(g=>`
-  <div class="card">
-   <div class="player">
-    <img class="avatar" src="${safeUrl(g.avatar_url)}" onerror="this.src='https://placehold.co/80x80/171717/f5c400?text=G'">
-    <div>
-     <strong>${esc(g.full_name)}</strong>
-     <div class="muted">@${esc(g.game_username)}</div>
-    </div>
-   </div>
-   <div class="muted" style="margin-top:10px">Joined: ${dateOnly(g.created_at)}</div>
-   <div class="row" style="margin-top:12px">
-    <button class="btn secondary small" onclick="viewGamer('${g.id}')">View Profile</button>
-    ${state.isAdmin?`
-     <button class="btn small" onclick="editGamer('${g.id}')">Edit</button>
-     <button class="btn danger small" onclick="deleteGamer('${g.id}')">Delete</button>
-    `:""}
-   </div>
-  </div>
- `).join(""):`<div class="empty">No gamers found.</div>`;
-}
 
 $("gamerSearch").addEventListener("input",renderGamers);
 
