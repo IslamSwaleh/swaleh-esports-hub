@@ -1126,7 +1126,7 @@ function renderFixtures(){
  $("fixtureList").innerHTML=matches.length?matches.map(m=>`
   <div class="card">
    <div class="row">
-    <span class="pill">${esc(m.status||"scheduled")}</span>
+   <span class="pill">${m.published_at?"PUBLISHED":esc(m.status||"SCHEDULED").toUpperCase()}</span>
     <span class="muted">${esc(m.stage||"Match")} · Round ${m.round_number||1}</span>
    </div>
    <div class="match">
