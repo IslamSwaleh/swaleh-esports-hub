@@ -653,6 +653,7 @@ function renderTournaments(){
  `).join(""):`<div class="empty">No tournaments available.</div>`;
 }
 
+ 
 function openTournamentForm(t=null){
  if(!requireAdmin())return;
 
@@ -662,6 +663,7 @@ function openTournamentForm(t=null){
     <label>Tournament Name</label>
     <input id="tName" required value="${esc(t?.name||"")}">
    </div>
+
    <div class="field">
     <label>Format</label>
     <select id="tFormat">
@@ -669,23 +671,29 @@ function openTournamentForm(t=null){
      <option value="knockout" ${t?.format==="knockout"?"selected":""}>Knockout</option>
     </select>
    </div>
+
    <div class="field">
-    <label>Start Date</label>
-    start_date:t?.start_date || new Date().toISOString(),
+    <label>Description</label>
+    <textarea id="tDescription" placeholder="Tournament description">${esc(t?.description||"")}</textarea>
    </div>
+
    <div class="field">
     <label>Maximum Fixtures</label>
     <input type="number" id="tMax" min="1" max="1000" value="${t?.max_fixtures||38}">
    </div>
+
    <div class="field">
     <label>Status</label>
     <select id="tStatus">
-     <option value="upcoming">Upcoming</option>
+     <option value="upcoming" ${!t||t.status==="upcoming"?"selected":""}>Upcoming</option>
      <option value="active" ${t?.status==="active"?"selected":""}>Active</option>
      <option value="completed" ${t?.status==="completed"?"selected":""}>Completed</option>
     </select>
    </div>
-   <button class="btn" type="submit">${t?"Save Tournament":"Create Tournament"}</button>
+
+   <button class="btn" type="submit">
+    ${t?"Save Tournament":"Create Tournament"}
+   </button>
   </form>
  `);
 
@@ -697,22 +705,42 @@ function openTournamentForm(t=null){
    name:$("tName").value.trim(),
    format:$("tFormat").value,
    description:$("tDescription").value.trim(),
-   start_date:$("tDate").value?new Date($("tDate").value).toISOString():null,
+   start_date:t?.start_date || new Date().toISOString(),
    max_fixtures:Number($("tMax").value)||38,
    status:$("tStatus").value
   };
 
-  const result=t?
-   await sb.from("tournaments").update(payload).eq("id",t.id):
-   await sb.from("tournaments").insert(payload);
+  if(!payload.name)return toast("Enter tournament name.",true);
 
-  if(result.error)return toast(result.error.message,true);
+  const button=$("tournamentForm").querySelector('button[type="submit"]');
+  button.disabled=true;
+  button.textContent="Saving...";
 
-  closeModal();
-  toast(t?"Tournament updated!":"Tournament created!");
-  await loadTournaments();
+  try{
+   const result=t
+    ?await sb.from("tournaments").update(payload).eq("id",t.id)
+    :await sb.from("tournaments").insert(payload);
+
+   if(result.error){
+    toast(result.error.message,true);
+    button.disabled=false;
+    button.textContent=t?"Save Tournament":"Create Tournament";
+    return;
+   }
+
+   closeModal();
+   toast(t?"Tournament updated!":"Tournament created!");
+   await loadTournaments();
+
+  }catch(error){
+   console.error("TOURNAMENT ERROR:",error);
+   toast("Error: "+error.message,true);
+   button.disabled=false;
+   button.textContent=t?"Save Tournament":"Create Tournament";
+  }
  });
 }
+
 
 function editTournament(id){
  const t=state.tournaments.find(x=>x.id===id);
