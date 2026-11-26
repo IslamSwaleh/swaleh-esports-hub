@@ -1291,6 +1291,82 @@ async function calculateTable(tournamentId){
 ===================================== */
 
 
+function renderStatistics(){
+ const container=$("statisticsList");
+ if(!container)return;
+
+ const published=state.matches.filter(m=>
+  m.published_at&&
+  m.home_score!==null&&
+  m.away_score!==null
+ );
+
+ const stats=state.gamers.map(g=>{
+  const matches=published.filter(m=>
+   m.home_gamer_id===g.id||m.away_gamer_id===g.id
+  );
+
+  let wins=0,draws=0,losses=0,goals=0,conceded=0;
+
+  matches.forEach(m=>{
+   const home=m.home_gamer_id===g.id;
+   const own=Number(home?m.home_score:m.away_score);
+   const opp=Number(home?m.away_score:m.home_score);
+
+   goals+=own;
+   conceded+=opp;
+
+   if(own>opp)wins++;
+   else if(own<opp)losses++;
+   else draws++;
+  });
+
+  return {
+   name:g.full_name,
+   played:matches.length,
+   wins,draws,losses,
+   goals,
+   conceded,
+   goalDifference:goals-conceded,
+   points:wins*3+draws
+  };
+ }).sort((a,b)=>
+  b.points-a.points||
+  b.goalDifference-a.goalDifference||
+  b.goals-a.goals
+ );
+
+ container.innerHTML=stats.length?`
+  <div class="tablewrap card">
+   <table>
+    <thead>
+     <tr>
+      <th>#</th><th>Gamer</th><th>P</th>
+      <th>W</th><th>D</th><th>L</th>
+      <th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
+     </tr>
+    </thead>
+    <tbody>
+     ${stats.map((p,i)=>`
+      <tr>
+       <td>${i+1}</td>
+       <td>${esc(p.name)}</td>
+       <td>${p.played}</td>
+       <td>${p.wins}</td>
+       <td>${p.draws}</td>
+       <td>${p.losses}</td>
+       <td>${p.goals}</td>
+       <td>${p.conceded}</td>
+       <td>${p.goalDifference}</td>
+       <td><strong style="color:var(--gold)">${p.points}</strong></td>
+      </tr>
+     `).join("")}
+    </tbody>
+   </table>
+  </div>
+ `:'<div class="empty">No gamer statistics available yet.</div>';
+}
+
 async function renderStandings(){
  const id=$("standingTournament").value;
 
@@ -1892,5 +1968,4 @@ initializeHub().catch(error=>{
    END OF SWALEH eSPORTS HUB
 ===================================== */
 </script>
-</body>
-</html>
+
