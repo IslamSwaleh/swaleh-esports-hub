@@ -1,0 +1,1524 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080808">
+<title>SWALEH eSPORTS HUB</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+ --bg:#080808;--panel:#151515;--gold:#f5c400;
+ --gold2:#ffe36a;--white:#f5f5f5;--muted:#aaa;
+ --line:#443916;--green:#43c982;--red:#e74c3c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#292000,transparent 45%),var(--bg);color:var(--white);font-family:Rajdhani,sans-serif;font-size:17px}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.shell{max-width:1200px;margin:auto;padding:14px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--line)}
+.brand{font:800 23px Orbitron;color:var(--gold)}
+.tag{font-size:12px;letter-spacing:4px}
+.btn{background:var(--gold);color:#111;border:1px solid var(--gold);border-radius:7px;padding:9px 14px;font-weight:700}
+.btn.secondary{background:transparent;color:var(--gold)}
+.btn.danger{background:var(--red);border-color:var(--red);color:white}
+.btn.small{padding:5px 9px;font-size:14px}
+.hero{margin:20px 0;padding:35px 15px;text-align:center;border:1px solid var(--line);border-radius:14px;background:linear-gradient(130deg,#211a05,#101010,#241b03)}
+.hero h1{font:800 clamp(25px,6vw,45px) Orbitron;color:var(--gold);margin:0}
+.hero p{letter-spacing:4px}
+.nav{display:flex;gap:8px;overflow-x:auto;padding:12px 0}
+.nav button{white-space:nowrap;background:#151515;color:white;border:1px solid var(--line);padding:9px 13px;border-radius:8px}
+.nav button.active{background:var(--gold);color:#111}
+.section{display:none}
+.section.active{display:block}
+.heading{font:700 21px Orbitron;color:var(--gold);margin:16px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px}
+.card{background:linear-gradient(145deg,#191919,#101010);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:13px}
+.stat{font:700 30px Orbitron;color:var(--gold)}
+.muted{color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{color:var(--gold2);font-weight:600}
+.field input,.field select,.field textarea,.search{width:100%;padding:10px;background:#090909;color:white;border:1px solid #51451c;border-radius:7px}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:500px}
+th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--gold);font-family:Orbitron;font-size:12px}
+.pill{background:#302708;color:var(--gold);padding:3px 9px;border-radius:30px}
+.avatar{width:45px;height:45px;border-radius:50%;object-fit:cover;border:1px solid var(--gold)}
+.player{display:flex;align-items:center;gap:12px}
+.match{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.match .team:last-child{text-align:right}
+.score{font:700 20px Orbitron;color:var(--gold)}
+.notice{padding:12px;background:#251e08;border:1px solid var(--gold);border-radius:8px;margin:12px 0}
+.empty{text-align:center;padding:25px;color:#999}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;padding:15px;z-index:10}
+.modal.show{display:flex}
+.modalbox{width:min(480px,100%);max-height:90vh;overflow:auto;background:#131313;border:1px solid var(--gold);border-radius:12px;padding:18px}
+.toast{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:#111;padding:12px 18px;border-radius:8px;z-index:20;max-width:90%}
+footer{text-align:center;color:#777;padding:25px;border-top:1px solid var(--line);margin-top:30px}
+@media(max-width:600px){.shell{padding:10px}.brand{font-size:19px}header{align-items:flex-start;flex-direction:column}.hero{padding:25px 10px}}
+</style>
+</head>
+
+<body>
+<div class="shell">
+
+<header>
+ <div>
+  <div class="brand">SWALEH eSPORTS HUB</div>
+  <div class="tag">WHERE LEGENDS ARE MADE</div>
+ </div>
+ <div class="row">
+  <button class="btn secondary" id="authButton" onclick="openLogin()">Admin Login</button>
+  <button class="btn danger hidden" id="logoutButton" onclick="logout()">Logout</button>
+ </div>
+</header>
+
+<div class="hero">
+ <h1>eFOOTBALL ARENA</h1>
+ <p>COMPETE • DOMINATE • MAKE HISTORY</p>
+</div>
+
+<nav class="nav" id="mainNav">
+ <button class="active" data-page="overview">Overview</button>
+ <button data-page="gamers">Gamers</button>
+ <button data-page="tournaments">Tournaments</button>
+ <button data-page="fixtures">Fixtures & Results</button>
+ <button data-page="standings">Standings</button>
+ <button data-page="statistics">Statistics</button>
+ <button data-page="headtohead">Head to Head</button>
+ <button data-page="halloffame">Hall of Fame</button>
+ <button data-page="notifications">Notifications</button>
+ <button data-page="admin">Admin</button>
+</nav>
+
+<main>
+<section id="overview" class="section active">
+ <h2 class="heading">HUB OVERVIEW</h2>
+ <div class="grid">
+  <div class="card"><div class="muted">Registered Gamers</div><div class="stat" id="totalGamers">0</div></div>
+  <div class="card"><div class="muted">Tournaments</div><div class="stat" id="totalTournaments">0</div></div>
+  <div class="card"><div class="muted">Matches</div><div class="stat" id="totalMatches">0</div></div>
+  <div class="card"><div class="muted">Published Results</div><div class="stat" id="publishedMatches">0</div></div>
+ </div>
+ <div class="card">
+  <h3 class="heading">LATEST ANNOUNCEMENTS</h3>
+  <div id="homeAnnouncements" class="empty">No announcements yet.</div>
+ </div>
+ <div class="card">
+  <h3 class="heading">LATEST RESULTS</h3>
+  <div id="homeResults" class="empty">No published results yet.</div>
+ </div>
+</section>
+
+<section id="gamers" class="section">
+ <div class="row"><h2 class="heading">REGISTERED GAMERS</h2><button class="btn admin-only hidden" onclick="openGamerForm()">+ Add Gamer</button></div>
+ <input class="search" id="gamerSearch" placeholder="Search gamer name or username...">
+ <div id="gamerList" class="grid"></div>
+</section>
+
+<section id="tournaments" class="section">
+ <div class="row"><h2 class="heading">TOURNAMENTS</h2><button class="btn admin-only hidden" onclick="openTournamentForm()">+ Create Tournament</button></div>
+ <div id="tournamentList" class="grid"></div>
+</section>
+
+<section id="fixtures" class="section">
+ <h2 class="heading">FIXTURES & RESULTS</h2>
+ <div class="field"><label>Select tournament</label><select id="fixtureTournament"></select></div>
+ <div id="fixtureList"></div>
+</section>
+
+<section id="standings" class="section">
+ <h2 class="heading">LEAGUE TABLE</h2>
+ <div class="field"><label>Select tournament</label><select id="standingTournament"></select></div>
+ <div id="standingTable"></div>
+</section>
+
+<section id="statistics" class="section">
+ <h2 class="heading">GAMER STATISTICS</h2>
+ <div id="statisticsList"></div>
+</section>
+
+<section id="headtohead" class="section">
+ <h2 class="heading">HEAD TO HEAD</h2>
+ <div class="formgrid">
+  <div class="field"><label>First gamer</label><select id="h2hOne"></select></div>
+  <div class="field"><label>Second gamer</label><select id="h2hTwo"></select></div>
+ </div>
+ <button class="btn" onclick="showHeadToHead()">Compare Gamers</button>
+ <div id="h2hResult"></div>
+</section>
+
+<section id="halloffame" class="section">
+ <h2 class="heading">HALL OF FAME</h2>
+ <div id="hallList"></div>
+</section>
+
+<section id="notifications" class="section">
+ <h2 class="heading">NOTIFICATION CENTRE</h2>
+ <div id="notificationList"></div>
+</section>
+
+<section id="admin" class="section">
+ <h2 class="heading">ADMIN CONTROL CENTRE</h2>
+ <div id="adminLockNotice" class="notice">Admin login required to manage this hub.</div>
+ <div id="adminDashboard" class="hidden">
+  <div class="grid">
+   <div class="card"><h3>Gamer Management</h3><p class="muted">Register and manage gamers.</p><button class="btn" onclick="openGamerForm()">Manage Gamers</button></div>
+   <div class="card"><h3>Tournament Management</h3><p class="muted">Create and manage competitions.</p><button class="btn" onclick="openTournamentForm()">Create Tournament</button></div>
+   <div class="card"><h3>Fixture Management</h3><p class="muted">Generate fixtures and enter scores.</p><button class="btn" onclick="goTo('fixtures')">Manage Fixtures</button></div>
+   <div class="card"><h3>Announcements</h3><p class="muted">Send public hub announcements.</p><button class="btn" onclick="openAnnouncementForm()">New Announcement</button></div>
+  </div>
+ </div>
+</section>
+</main>
+
+<footer>
+ <div class="brand">SWALEH eSPORTS HUB</div>
+ <p>WHERE LEGENDS ARE MADE</p>
+ <small>Powered by eFootball Community</small>
+</footer>
+</div>
+
+<div class="modal" id="modal">
+ <div class="modalbox">
+  <div class="row"><h3 class="heading" id="modalTitle">Form</h3><button class="btn danger small" onclick="closeModal()">Close</button></div>
+  <div id="modalContent"></div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+</body>
+</html>
+
+<!-- SWALEH eSPORTS HUB - PART 2/4 -->
+<script>
+/* =====================================
+   SUPABASE CONFIGURATION
+===================================== */
+
+// Weka Supabase Project URL yako hapa
+const SUPABASE_URL = "https://xbqawqhhijnbqgeoryqe.supabase.co";
+
+// Weka Supabase publishable key yako hapa.
+// Usitumie service_role key.
+const SUPABASE_KEY = "WEKA_PUBLISHABLE_KEY_YAKO_HAPA";
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const state = {
+ user:null,
+ isAdmin:false,
+ gamers:[],
+ tournaments:[],
+ matches:[],
+ notifications:[],
+ hall:[],
+ currentPage:"overview"
+};
+
+const $ = id => document.getElementById(id);
+
+function toast(message,error=false){
+ const el=$("toast");
+ el.textContent=message;
+ el.style.background=error?"#e74c3c":"#f5c400";
+ el.style.color=error?"white":"#111";
+ el.style.display="block";
+ setTimeout(()=>el.style.display="none",3500);
+}
+
+function openModal(title,html){
+ $("modalTitle").textContent=title;
+ $("modalContent").innerHTML=html;
+ $("modal").classList.add("show");
+}
+function closeModal(){
+ $("modal").classList.remove("show");
+}
+
+function goTo(page){
+ state.currentPage=page;
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+ document.querySelectorAll("#mainNav button").forEach(b=>b.classList.remove("active"));
+ $(page)?.classList.add("active");
+ document.querySelector(`#mainNav button[data-page="${page}"]`)?.classList.add("active");
+ window.scrollTo({top:0,behavior:"smooth"});
+ if(page==="fixtures") renderFixtures();
+ if(page==="standings") renderStandings();
+ if(page==="statistics") renderStatistics();
+ if(page==="notifications") renderNotifications();
+ if(page==="halloffame") renderHall();
+}
+
+$("mainNav").addEventListener("click",e=>{
+ const button=e.target.closest("button[data-page]");
+ if(button)goTo(button.dataset.page);
+});
+
+function requireAdmin(){
+ if(!state.isAdmin){
+  toast("Admin access required.",true);
+  return false;
+ }
+ return true;
+}
+
+/* =====================================
+   AUTHENTICATION
+===================================== */
+
+async function checkAuth(){
+ const {data:{session},error:sessionError}=await sb.auth.getSession();
+
+ state.user=session?.user||null;
+ state.isAdmin=false;
+ state.adminCheckError=sessionError?.message||null;
+
+ if(state.user){
+  const {data:adminRow,error:adminError}=await sb
+   .from("admin_users")
+   .select("user_id")
+   .eq("user_id",state.user.id)
+   .maybeSingle();
+
+  if(adminError){
+   state.adminCheckError=adminError.message;
+   console.error("ADMIN CHECK ERROR:",adminError);
+  }else if(adminRow){
+   state.isAdmin=true;
+  }
+ }
+
+ $("authButton").textContent=state.isAdmin?"👑 Admin Active":"Admin Login";
+ $("logoutButton").classList.toggle("hidden",!state.user);
+ $("adminLockNotice").classList.toggle("hidden",state.isAdmin);
+ $("adminDashboard").classList.toggle("hidden",!state.isAdmin);
+
+ document.querySelectorAll(".admin-only").forEach(el=>{
+  el.classList.toggle("hidden",!state.isAdmin);
+ });
+
+ return state.isAdmin;
+}
+
+function openLogin(){
+ if(state.isAdmin){
+  goTo("admin");
+  return;
+ }
+
+ openModal("ADMIN LOGIN",`
+  <form id="loginForm">
+   <div class="field">
+    <label>Email</label>
+    <input type="email" id="loginEmail" required autocomplete="username">
+   </div>
+   <div class="field">
+    <label>Password</label>
+    <input type="password" id="loginPassword" required autocomplete="current-password">
+   </div>
+   <button class="btn" type="submit">Login Securely</button>
+  </form>
+ `);
+
+ $("loginForm").addEventListener("submit",signInAdmin);
+}
+
+async function signInAdmin(e){
+ e.preventDefault();
+
+ const email=$("loginEmail").value.trim();
+ const password=$("loginPassword").value;
+
+ const {error}=await sb.auth.signInWithPassword({email,password});
+
+ if(error){
+  toast(error.message,true);
+  return;
+ }
+
+ await checkAuth();
+
+ if(state.adminCheckError){
+  toast("Admin database error: "+state.adminCheckError,true);
+  return;
+ }
+
+ if(!state.isAdmin){
+  await sb.auth.signOut();
+  await checkAuth();
+  toast("Access denied: Account is not listed in admin_users.",true);
+  return;
+ }
+
+ closeModal();
+ toast("Welcome, Admin!");
+ await loadAll();
+ goTo("admin");
+}
+
+async function logout(){
+ const {error}=await sb.auth.signOut();
+ if(error)return toast(error.message,true);
+ await checkAuth();
+ toast("Logged out successfully.");
+ await loadAll();
+ goTo("overview");
+}
+
+/* =====================================
+   GAMER MANAGEMENT
+===================================== */
+
+async function loadGamers(){
+ const {data,error}=await sb
+  .from("gamers")
+  .select("*")
+  .order("created_at",{ascending:false});
+
+ if(error){
+  console.error(error);
+  toast("Could not load gamers: "+error.message,true);
+  return;
+ }
+
+ state.gamers=data||[];
+ renderGamers();
+ updateOverview();
+ fillGamerSelects();
+}
+
+function renderGamers(){
+ const search=($("gamerSearch")?.value||"").toLowerCase();
+
+ const list=state.gamers.filter(g=>
+  (g.full_name||"").toLowerCase().includes(search)||
+  (g.game_username||"").toLowerCase().includes(search)
+ );
+
+ $("gamerList").innerHTML=list.length?list.map(g=>`
+  <div class="card">
+   <div class="player">
+    <img class="avatar" src="${safeUrl(g.avatar_url)}" onerror="this.src='https://placehold.co/80x80/171717/f5c400?text=G'">
+    <div>
+     <strong>${esc(g.full_name)}</strong>
+     <div class="muted">@${esc(g.game_username)}</div>
+    </div>
+   </div>
+   <div class="muted" style="margin-top:10px">Joined: ${dateOnly(g.created_at)}</div>
+   <div class="row" style="margin-top:12px">
+    <button class="btn secondary small" onclick="viewGamer('${g.id}')">View Profile</button>
+    ${state.isAdmin?`
+     <button class="btn small" onclick="editGamer('${g.id}')">Edit</button>
+     <button class="btn danger small" onclick="deleteGamer('${g.id}')">Delete</button>
+    `:""}
+   </div>
+  </div>
+ `).join(""):`<div class="empty">No gamers found.</div>`;
+}
+
+$("gamerSearch").addEventListener("input",renderGamers);
+
+function openGamerForm(g=null){
+ if(!requireAdmin())return;
+
+ openModal(g?"EDIT GAMER":"REGISTER GAMER",`
+  <form id="gamerForm">
+   <div class="field">
+    <label>Full Name</label>
+    <input id="gFullName" required value="${esc(g?.full_name||"")}">
+   </div>
+   <div class="field">
+    <label>eFootball Username</label>
+    <input id="gUsername" required value="${esc(g?.game_username||"")}">
+   </div>
+   <div class="field">
+    <label>WhatsApp Number</label>
+    <input id="gWhatsapp" value="${esc(g?.whatsapp_number||"")}">
+   </div>
+   <div class="field">
+    <label>WhatsApp Username (optional)</label>
+    <input id="gWhatsappUsername" value="${esc(g?.whatsapp_username||"")}">
+   </div>
+   <div class="field">
+    <label>Avatar URL (optional)</label>
+    <input id="gAvatar" type="url" value="${esc(g?.avatar_url||"")}">
+   </div>
+   <button class="btn" type="submit">${g?"Save Changes":"Register Gamer"}</button>
+  </form>
+ `);
+
+ $("gamerForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!requireAdmin())return;
+
+  const payload={
+   full_name:$("gFullName").value.trim(),
+   game_username:$("gUsername").value.trim(),
+   whatsapp_number:$("gWhatsapp").value.trim(),
+   whatsapp_username:$("gWhatsappUsername").value.trim(),
+   avatar_url:$("gAvatar").value.trim()||null
+  };
+
+  let result;
+
+  if(g){
+   result=await sb.from("gamers").update(payload).eq("id",g.id);
+  }else{
+   payload.user_id=state.user.id;
+   result=await sb.from("gamers").insert(payload);
+  }
+
+  if(result.error){
+   toast(result.error.message,true);
+   return;
+  }
+
+  closeModal();
+  toast(g?"Gamer updated!":"Gamer registered!");
+  await loadGamers();
+ });
+}
+
+function editGamer(id){
+ const gamer=state.gamers.find(g=>g.id===id);
+ if(gamer)openGamerForm(gamer);
+}
+
+async function deleteGamer(id){
+ if(!requireAdmin())return;
+ if(!confirm("Delete this gamer? This may be blocked if they have tournament records."))return;
+
+ const {error}=await sb.from("gamers").delete().eq("id",id);
+ if(error)return toast(error.message,true);
+
+ toast("Gamer deleted.");
+ await loadAll();
+}
+
+function viewGamer(id){
+ const g=state.gamers.find(x=>x.id===id);
+ if(!g)return;
+
+ const matches=state.matches.filter(m=>
+  m.home_gamer_id===id||m.away_gamer_id===id
+ );
+ let wins=0,draws=0,losses=0,goals=0,conceded=0;
+
+ matches.filter(m=>m.published_at&&m.home_score!==null&&m.away_score!==null).forEach(m=>{
+  const home=m.home_gamer_id===id;
+  const own=home?m.home_score:m.away_score;
+  const opp=home?m.away_score:m.home_score;
+  goals+=own;
+  conceded+=opp;
+  if(own>opp)wins++;
+  else if(own===opp)draws++;
+  else losses++;
+ });
+
+ openModal("GAMER PROFILE",`
+  <div class="player">
+   <img class="avatar" src="${safeUrl(g.avatar_url)}">
+   <div><h3>${esc(g.full_name)}</h3><div class="muted">@${esc(g.game_username)}</div></div>
+  </div>
+  <div class="grid" style="margin-top:15px">
+   <div class="card">Wins <div class="stat">${wins}</div></div>
+   <div class="card">Draws <div class="stat">${draws}</div></div>
+   <div class="card">Losses <div class="stat">${losses}</div></div>
+   <div class="card">Goals <div class="stat">${goals}</div></div>
+  </div>
+  <p>Goals conceded: ${conceded}</p>
+  <p>Matches played: ${wins+draws+losses}</p>
+ `);
+}
+
+function fillGamerSelects(){
+ const options=state.gamers.map(g=>
+  `<option value="${g.id}">${esc(g.full_name)}</option>`
+ ).join("");
+
+ ["h2hOne","h2hTwo"].forEach(id=>{
+  const el=$(id);
+  if(el)el.innerHTML='<option value="">Select gamer</option>'+options;
+ });
+}
+
+/* =====================================
+   SECURITY / DISPLAY HELPERS
+===================================== */
+
+function esc(value){
+ return String(value??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
+function safeUrl(value){
+ const url=String(value||"");
+ return /^https:\/\/[^\s"'<>]+$/i.test(url)
+  ?esc(url)
+  :"https://placehold.co/80x80/171717/f5c400?text=G";
+}
+
+function dateOnly(value){
+ if(!value)return "—";
+ const d=new Date(value);
+ return isNaN(d)?"—":d.toLocaleDateString();
+}
+</script>
+
+<!-- SWALEH eSPORTS HUB - PART 3/4 -->
+
+<script>
+/* =====================================
+   TOURNAMENT MANAGEMENT
+===================================== */
+
+async function loadTournaments(){
+ const {data,error}=await sb.from("tournaments")
+  .select("*").order("created_at",{ascending:false});
+
+ if(error){
+  console.error(error);
+  toast("Tournament loading error: "+error.message,true);
+  return;
+ }
+
+ state.tournaments=data||[];
+ renderTournaments();
+ fillTournamentSelects();
+ updateOverview();
+}
+
+function renderTournaments(){
+ $("tournamentList").innerHTML=state.tournaments.length?
+ state.tournaments.map(t=>`
+  <div class="card">
+   <div class="row">
+    <span class="pill">${esc(t.status)}</span>
+    <span class="muted">${esc(t.format)}</span>
+   </div>
+   <h3>${esc(t.name)}</h3>
+   <p class="muted">${esc(t.description||"No description provided.")}</p>
+   <p>Start: ${dateOnly(t.start_date)}</p>
+   <div class="row">
+    <button class="btn secondary small" onclick="viewTournament('${t.id}')">View</button>
+    ${state.isAdmin?`
+     <button class="btn small" onclick="editTournament('${t.id}')">Edit</button>
+     <button class="btn danger small" onclick="deleteTournament('${t.id}')">Delete</button>
+    `:""}
+   </div>
+  </div>
+ `).join(""):`<div class="empty">No tournaments available.</div>`;
+}
+
+function openTournamentForm(t=null){
+ if(!requireAdmin())return;
+
+ openModal(t?"EDIT TOURNAMENT":"CREATE TOURNAMENT",`
+  <form id="tournamentForm">
+   <div class="field">
+    <label>Tournament Name</label>
+    <input id="tName" required value="${esc(t?.name||"")}">
+   </div>
+   <div class="field">
+    <label>Format</label>
+    <select id="tFormat">
+     <option value="league" ${t?.format==="league"?"selected":""}>League</option>
+     <option value="knockout" ${t?.format==="knockout"?"selected":""}>Knockout</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Description</label>
+    <textarea id="tDescription">${esc(t?.description||"")}</textarea>
+   </div>
+   <div class="field">
+    <label>Start Date</label>
+    <input type="datetime-local" id="tDate" value="${t?.start_date?new Date(t.start_date).toISOString().slice(0,16):""}">
+   </div>
+   <div class="field">
+    <label>Maximum Fixtures</label>
+    <input type="number" id="tMax" min="1" max="1000" value="${t?.max_fixtures||38}">
+   </div>
+   <div class="field">
+    <label>Status</label>
+    <select id="tStatus">
+     <option value="upcoming">Upcoming</option>
+     <option value="active" ${t?.status==="active"?"selected":""}>Active</option>
+     <option value="completed" ${t?.status==="completed"?"selected":""}>Completed</option>
+    </select>
+   </div>
+   <button class="btn" type="submit">${t?"Save Tournament":"Create Tournament"}</button>
+  </form>
+ `);
+
+ $("tournamentForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!requireAdmin())return;
+
+  const payload={
+   name:$("tName").value.trim(),
+   format:$("tFormat").value,
+   description:$("tDescription").value.trim(),
+   start_date:$("tDate").value?new Date($("tDate").value).toISOString():null,
+   max_fixtures:Number($("tMax").value)||38,
+   status:$("tStatus").value
+  };
+
+  const result=t?
+   await sb.from("tournaments").update(payload).eq("id",t.id):
+   await sb.from("tournaments").insert(payload);
+
+  if(result.error)return toast(result.error.message,true);
+
+  closeModal();
+  toast(t?"Tournament updated!":"Tournament created!");
+  await loadTournaments();
+ });
+}
+
+function editTournament(id){
+ const t=state.tournaments.find(x=>x.id===id);
+ if(t)openTournamentForm(t);
+}
+
+async function deleteTournament(id){
+ if(!requireAdmin())return;
+ if(!confirm("Delete this tournament and its related records?"))return;
+
+ // Delete dependent records first. Database foreign keys may restrict deletion.
+ const {error}=await sb.from("tournaments").delete().eq("id",id);
+ if(error)return toast("Could not delete: "+error.message,true);
+
+ toast("Tournament deleted.");
+ await loadAll();
+}
+
+function fillTournamentSelects(){
+ const options=state.tournaments.map(t=>
+  `<option value="${t.id}">${esc(t.name)}</option>`
+ ).join("");
+
+ ["fixtureTournament","standingTournament"].forEach(id=>{
+  const el=$(id);
+  if(el){
+   const old=el.value;
+   el.innerHTML='<option value="">Select tournament</option>'+options;
+   if(state.tournaments.some(t=>t.id===old))el.value=old;
+  }
+ });
+}
+
+function viewTournament(id){
+ const t=state.tournaments.find(x=>x.id===id);
+ if(!t)return;
+
+ openModal("TOURNAMENT DETAILS",`
+  <h3>${esc(t.name)}</h3>
+  <p>${esc(t.description||"No description")}</p>
+  <p>Format: ${esc(t.format)}</p>
+  <p>Status: ${esc(t.status)}</p>
+  <p>Start: ${dateOnly(t.start_date)}</p>
+  ${state.isAdmin?`
+   <button class="btn" onclick="closeModal();openRegistration('${t.id}')">Manage Participants</button>
+   <button class="btn secondary" onclick="closeModal();generateFixtures('${t.id}')">Generate Fixtures</button>
+  `:""}
+ `);
+}
+
+/* =====================================
+   TOURNAMENT REGISTRATIONS
+===================================== */
+
+async function openRegistration(tournamentId){
+ if(!requireAdmin())return;
+
+ const {data:registered,error}=await sb
+  .from("tournament_registrations")
+  .select("gamer_id")
+  .eq("tournament_id",tournamentId);
+
+ if(error)return toast(error.message,true);
+
+ const selected=new Set((registered||[]).map(r=>r.gamer_id));
+
+ openModal("TOURNAMENT PARTICIPANTS",`
+  <p>Select gamers who will participate.</p>
+  <div id="registrationChoices">
+   ${state.gamers.map(g=>`
+    <label style="display:flex;gap:10px;padding:9px;border-bottom:1px solid #443916">
+     <input type="checkbox" value="${g.id}" ${selected.has(g.id)?"checked":""}>
+     ${esc(g.full_name)} (@${esc(g.game_username)})
+    </label>
+   `).join("")}
+  </div>
+  <button class="btn" onclick="saveRegistrations('${tournamentId}')">Save Participants</button>
+ `);
+}
+
+async function saveRegistrations(tournamentId){
+ if(!requireAdmin())return;
+
+ const ids=[...document.querySelectorAll("#registrationChoices input:checked")]
+  .map(el=>el.value);
+
+ if(ids.length<2)return toast("At least two gamers are required.",true);
+
+ const {data:existing,error:readError}=await sb
+  .from("tournament_registrations")
+  .select("id,gamer_id")
+  .eq("tournament_id",tournamentId);
+
+ if(readError)return toast(readError.message,true);
+
+ const existingRows=existing||[];
+ const wanted=new Set(ids);
+ const existingIds=new Set(existingRows.map(r=>r.gamer_id));
+
+ const removeIds=existingRows.filter(r=>!wanted.has(r.gamer_id)).map(r=>r.id);
+
+ if(removeIds.length){
+  const {error}=await sb.from("tournament_registrations")
+   .delete().in("id",removeIds);
+  if(error)return toast(error.message,true);
+ }
+
+ const additions=ids.filter(id=>!existingIds.has(id)).map(id=>({
+  tournament_id:tournamentId,
+  gamer_id:id,
+  user_id:state.user.id
+ }));
+
+ if(additions.length){
+  const {error}=await sb.from("tournament_registrations").insert(additions);
+  if(error)return toast(error.message,true);
+ }
+
+ closeModal();
+ toast("Participants saved!");
+}
+
+/* =====================================
+   FIXTURE GENERATION
+===================================== */
+
+async function generateFixtures(tournamentId){
+ if(!requireAdmin())return;
+
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
+ if(!tournament)return;
+
+ const {data:regs,error}=await sb.from("tournament_registrations")
+  .select("gamer_id,group_name,seed")
+  .eq("tournament_id",tournamentId);
+
+ if(error)return toast(error.message,true);
+
+ const ids=[...new Set((regs||[]).map(r=>r.gamer_id))];
+
+ if(ids.length<2)return toast("Register at least two gamers first.",true);
+
+ const {data:existing,error:matchError}=await sb.from("matches")
+  .select("id").eq("tournament_id",tournamentId);
+
+ if(matchError)return toast(matchError.message,true);
+ if(existing?.length){
+  return toast("Fixtures already exist. Avoid generating duplicates.",true);
+ }
+
+ let pairs=[];
+
+ if(tournament.format==="league"){
+  // Single round-robin, capped by max_fixtures.
+  for(let i=0;i<ids.length;i++){
+   for(let j=i+1;j<ids.length;j++){
+    pairs.push([ids[i],ids[j]]);
+   }
+  }
+ }else{
+  // Knockout first round; odd numbers receive a bye.
+  const shuffled=[...ids].sort(()=>Math.random()-.5);
+  if(shuffled.length%2){
+   pairs.push([shuffled[shuffled.length-1],null]);
+  }
+  for(let i=0;i<shuffled.length-1;i+=2){
+   pairs.push([shuffled[i],shuffled[i+1]]);
+  }
+ }
+
+ const max=Number(tournament.max_fixtures)||38;
+ pairs=pairs.slice(0,max);
+
+ const rows=pairs.map((pair,index)=>({
+  tournament_id:tournamentId,
+  home_gamer_id:pair[0],
+  away_gamer_id:pair[1],
+  home_score:null,
+  away_score:null,
+  status:pair[1]?"scheduled":"completed",
+  round_number:1,
+  stage:tournament.format==="league"?"league":"knockout",
+  is_bye:!pair[1],
+  published_at:null
+ }));
+
+ const {error:insertError}=await sb.from("matches").insert(rows);
+ if(insertError)return toast(insertError.message,true);
+
+ toast("Fixtures generated successfully!");
+ closeModal();
+ await loadMatches();
+}
+
+async function loadMatches(){
+ const {data,error}=await sb.from("matches")
+  .select("*").order("created_at",{ascending:true});
+
+ if(error){
+  console.error(error);
+  toast("Match loading error: "+error.message,true);
+  return;
+ }
+
+ state.matches=data||[];
+ renderFixtures();
+ renderStandings();
+ renderStatistics();
+ updateOverview();
+}
+
+/* =====================================
+   FIXTURES AND RESULTS
+===================================== */
+
+$("fixtureTournament").addEventListener("change",renderFixtures);
+$("standingTournament").addEventListener("change",renderStandings);
+
+function gamerName(id){
+ const g=state.gamers.find(x=>x.id===id);
+ return g?.full_name||"Unknown Gamer";
+}
+
+function renderFixtures(){
+ const tournamentId=$("fixtureTournament").value;
+ if(!tournamentId){
+  $("fixtureList").innerHTML='<div class="empty">Select a tournament.</div>';
+  return;
+ }
+
+ const matches=state.matches.filter(m=>
+  m.tournament_id===tournamentId&&
+  (state.isAdmin||m.published_at)
+ );
+
+ $("fixtureList").innerHTML=matches.length?matches.map(m=>`
+  <div class="card">
+   <div class="row">
+    <span class="pill">${esc(m.status||"scheduled")}</span>
+    <span class="muted">${esc(m.stage||"Match")} · Round ${m.round_number||1}</span>
+   </div>
+   <div class="match">
+    <div class="team">${esc(gamerName(m.home_gamer_id))}</div>
+    <div class="score">${m.home_score??"-"} : ${m.away_score??"-"}</div>
+    <div class="team">${esc(gamerName(m.away_gamer_id))}</div>
+   </div>
+   ${m.is_bye?'<p class="muted">BYE</p>':""}
+   ${state.isAdmin&&!m.is_bye?`
+    <div class="row">
+     <button class="btn small" onclick="openScoreForm('${m.id}')">Enter Score</button>
+     <button class="btn secondary small" onclick="publishResult('${m.id}')">Publish Result</button>
+    </div>
+   `:""}
+  </div>
+ `).join(""):`<div class="empty">No fixtures available.</div>`;
+}
+
+async function openScoreForm(matchId){
+ if(!requireAdmin())return;
+
+ const m=state.matches.find(x=>x.id===matchId);
+ if(!m)return;
+
+ openModal("ENTER MATCH RESULT",`
+  <p>${esc(gamerName(m.home_gamer_id))} vs ${esc(gamerName(m.away_gamer_id))}</p>
+  <form id="scoreForm">
+   <div class="formgrid">
+    <div class="field">
+     <label>Home Score</label>
+     <input type="number" min="0" id="homeScore" required value="${m.home_score??""}">
+    </div>
+    <div class="field">
+     <label>Away Score</label>
+     <input type="number" min="0" id="awayScore" required value="${m.away_score??""}">
+    </div>
+   </div>
+   <button class="btn">Save Result</button>
+  </form>
+ `);
+
+ $("scoreForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const home=Number($("homeScore").value);
+  const away=Number($("awayScore").value);
+
+  if(home<0||away<0)return toast("Scores cannot be negative.",true);
+
+  const oldHome=m.home_score;
+  const oldAway=m.away_score;
+
+  const {error}=await sb.from("matches").update({
+   home_score:home,
+   away_score:away,
+   status:"completed",
+   published_at:null
+  }).eq("id",matchId);
+
+  if(error)return toast(error.message,true);
+
+  // Record score change for accountability.
+  await sb.from("result_audit_logs").insert({
+   match_id:matchId,
+   previous_home_score:oldHome,
+   previous_away_score:oldAway,
+   new_home_score:home,
+   new_away_score:away,
+   action_type:"score_updated",
+   reason:"Admin updated match result",
+   changed_by:state.user.id
+  });
+
+  closeModal();
+  toast("Score saved. Publish it to make it public.");
+  await loadMatches();
+ });
+}
+
+async function publishResult(matchId){
+ if(!requireAdmin())return;
+ if(!confirm("Publish this result for public viewing?"))return;
+
+ const m=state.matches.find(x=>x.id===matchId);
+ if(!m||m.home_score===null||m.away_score===null){
+  return toast("Enter the score first.",true);
+ }
+
+ const {error}=await sb.from("matches").update({
+  published_at:new Date().toISOString(),
+  status:"completed"
+ }).eq("id",matchId);
+
+ if(error)return toast(error.message,true);
+
+ // Notify both gamers.
+ const notifications=[
+  {
+   gamer_id:m.home_gamer_id,
+   match_id:m.id,
+   tournament_id:m.tournament_id,
+   type:"result_published",
+   title:"Match Result Published",
+   message:"Your match result has been published.",
+   is_public:false
+  },
+  {
+   gamer_id:m.away_gamer_id,
+   match_id:m.id,
+   tournament_id:m.tournament_id,
+   type:"result_published",
+   title:"Match Result Published",
+   message:"Your match result has been published.",
+   is_public:false
+  }
+ ];
+
+ await sb.from("notifications").insert(notifications);
+
+ toast("Result published!");
+ 
+</script>
+
+<!-- SWALEH eSPORTS HUB - PART 4/4 -->
+
+<script>
+/* =====================================
+   LEAGUE STANDINGS
+===================================== */
+
+function calculateTable(tournamentId){
+ const regs=state.matches
+  .filter(m=>m.tournament_id===tournamentId);
+
+ const registeredIds=new Set();
+
+ state.matches.filter(m=>m.tournament_id===tournamentId).forEach(m=>{
+  registeredIds.add(m.home_gamer_id);
+  if(m.away_gamer_id)registeredIds.add(m.away_gamer_id);
+ });
+
+ const table=[...registeredIds].map(id=>({
+  id,name:gamerName(id),played:0,wins:0,draws:0,losses:0,
+  gf:0,ga:0,gd:0,points:0
+ }));
+
+ regs.filter(m=>m.published_at&&m.home_score!==null&&m.away_score!==null)
+ .forEach(m=>{
+  const home=table.find(p=>p.id===m.home_gamer_id);
+  const away=table.find(p=>p.id===m.away_gamer_id);
+  if(!home||!away)return;
+
+  home.played++;
+  away.played++;
+  home.gf+=m.home_score;
+  home.ga+=m.away_score;
+  away.gf+=m.away_score;
+  away.ga+=m.home_score;
+
+  if(m.home_score>m.away_score){
+   home.wins++;home.points+=3;away.losses++;
+  }else if(m.home_score<m.away_score){
+   away.wins++;away.points+=3;home.losses++;
+  }else{
+   home.draws++;away.draws++;
+   home.points++;away.points++;
+  }
+ });
+
+ table.forEach(p=>p.gd=p.gf-p.ga);
+
+ return table.sort((a,b)=>
+  b.points-a.points||b.gd-a.gd||b.gf-a.gf
+ );
+}
+
+function renderStandings(){
+ const id=$("standingTournament").value;
+ if(!id){
+  $("standingTable").innerHTML='<div class="empty">Select a tournament.</div>';
+  return;
+ }
+
+ const table=calculateTable(id);
+
+ $("standingTable").innerHTML=table.length?`
+  <div class="tablewrap card">
+   <table>
+    <thead><tr>
+     <th>#</th><th>Gamer</th><th>P</th><th>W</th>
+     <th>D</th><th>L</th><th>GF</th><th>GA</th>
+     <th>GD</th><th>PTS</th>
+    </tr></thead>
+    <tbody>
+     ${table.map((p,i)=>`
+      <tr>
+       <td>${i+1}</td>
+       <td>${esc(p.name)}</td>
+       <td>${p.played}</td>
+       <td>${p.wins}</td>
+       <td>${p.draws}</td>
+       <td>${p.losses}</td>
+       <td>${p.gf}</td>
+       <td>${p.ga}</td>
+       <td>${p.gd}</td>
+       <td><strong style="color:var(--gold)">${p.points}</strong></td>
+      </tr>
+     `).join("")}
+    </tbody>
+   </table>
+  </div>
+ `:'<div class="empty">No registered participants or published results yet.</div>';
+}
+
+/* =====================================
+   STATISTICS
+===================================== */
+
+function renderStatistics(){
+ const totals=state.gamers.map(g=>{
+  let played=0,wins=0,draws=0,losses=0,goals=0,conceded=0;
+
+  state.matches.filter(m=>
+   m.published_at&&
+   (m.home_gamer_id===g.id||m.away_gamer_id===g.id)
+  ).forEach(m=>{
+   const home=m.home_gamer_id===g.id;
+   const own=home?m.home_score:m.away_score;
+   const opp=home?m.away_score:m.home_score;
+   if(own===null||opp===null)return;
+
+   played++;
+   goals+=own;
+   conceded+=opp;
+   if(own>opp)wins++;
+   else if(own===opp)draws++;
+   else losses++;
+  });
+
+  return {...g,played,wins,draws,losses,goals,conceded};
+ });
+
+ totals.sort((a,b)=>b.wins-a.wins||b.goals-a.goals);
+
+ $("statisticsList").innerHTML=totals.length?`
+  <div class="tablewrap card">
+   <table>
+    <thead><tr>
+     <th>Gamer</th><th>MP</th><th>W</th>
+     <th>D</th><th>L</th><th>GF</th><th>GA</th>
+    </tr></thead>
+    <tbody>
+     ${totals.map(p=>`
+      <tr>
+       <td>${esc(p.full_name)}</td>
+       <td>${p.played}</td>
+       <td>${p.wins}</td>
+       <td>${p.draws}</td>
+       <td>${p.losses}</td>
+       <td>${p.goals}</td>
+       <td>${p.conceded}</td>
+      </tr>
+     `).join("")}
+    </tbody>
+   </table>
+  </div>
+ `:'<div class="empty">No statistics available.</div>';
+}
+
+/* =====================================
+   HEAD TO HEAD
+===================================== */
+
+function showHeadToHead(){
+ const one=$("h2hOne").value;
+ const two=$("h2hTwo").value;
+
+ if(!one||!two||one===two){
+  return toast("Select two different gamers.",true);
+ }
+
+ let played=0,winsOne=0,winsTwo=0,draws=0;
+ let goalsOne=0,goalsTwo=0;
+
+ state.matches.filter(m=>
+  m.published_at&&
+  ((m.home_gamer_id===one&&m.away_gamer_id===two)||
+   (m.home_gamer_id===two&&m.away_gamer_id===one))
+ ).forEach(m=>{
+  const firstHome=m.home_gamer_id===one;
+  const a=firstHome?m.home_score:m.away_score;
+  const b=firstHome?m.away_score:m.home_score;
+
+  if(a===null||b===null)return;
+
+  played++;
+  goalsOne+=a;
+  goalsTwo+=b;
+
+  if(a>b)winsOne++;
+  else if(b>a)winsTwo++;
+  else draws++;
+ });
+
+ $("h2hResult").innerHTML=`
+  <div class="card" style="margin-top:15px">
+   <h3>${esc(gamerName(one))} vs ${esc(gamerName(two))}</h3>
+   <div class="grid">
+    <div><div class="stat">${winsOne}</div><div>Wins</div></div>
+    <div><div class="stat">${draws}</div><div>Draws</div></div>
+    <div><div class="stat">${winsTwo}</div><div>Wins</div></div>
+   </div>
+   <hr style="border-color:var(--line)">
+   <p>Matches played: ${played}</p>
+   <p>Goals: ${goalsOne} - ${goalsTwo}</p>
+  </div>
+ `;
+}
+
+/* =====================================
+   HALL OF FAME
+===================================== */
+
+async function loadHall(){
+ const {data,error}=await sb.from("hall_of_fame")
+  .select("*").order("won_date",{ascending:false});
+
+ if(error){
+  console.error(error);
+  return;
+ }
+
+ state.hall=data||[];
+ renderHall();
+}
+
+function renderHall(){
+ $("hallList").innerHTML=state.hall.length?
+ state.hall.map(h=>`
+  <div class="card">
+   <div class="row">
+    <span class="pill">🏆 CHAMPION</span>
+    <span class="muted">${dateOnly(h.won_date)}</span>
+   </div>
+   <h3 style="color:var(--gold)">${esc(h.tournament_name||"Tournament")}</h3>
+   <p>🥇 ${esc(gamerName(h.champion_gamer_id))}</p>
+   <p>🥈 ${esc(gamerName(h.runner_up_gamer_id))}</p>
+   <p class="muted">${esc(h.format_label||"")}</p>
+   <p>${esc(h.notes||"")}</p>
+   ${state.isAdmin?`
+    <button class="btn danger small" onclick="deleteHallEntry('${h.id}')">Delete Entry</button>
+   `:""}
+  </div>
+ `).join(""):'<div class="empty">Hall of Fame is waiting for its first champion.</div>';
+}
+
+function openHallForm(){
+ if(!requireAdmin())return;
+
+ const options=state.gamers.map(g=>
+  `<option value="${g.id}">${esc(g.full_name)}</option>`
+ ).join("");
+
+ const tournamentOptions=state.tournaments.map(t=>
+  `<option value="${t.id}">${esc(t.name)}</option>`
+ ).join("");
+
+ openModal("ADD HALL OF FAME CHAMPION",`
+  <form id="hallForm">
+   <div class="field"><label>Tournament</label>
+    <select id="hallTournament">${tournamentOptions}</select>
+   </div>
+   <div class="field"><label>Champion</label>
+    <select id="hallChampion">${options}</select>
+   </div>
+   <div class="field"><label>Runner-up</label>
+    <select id="hallRunner">${options}</select>
+   </div>
+   <div class="field"><label>Date won</label>
+    <input type="date" id="hallDate" required>
+   </div>
+   <div class="field"><label>Notes</label>
+    <textarea id="hallNotes"></textarea>
+   </div>
+   <button class="btn">Save Champion</button>
+  </form>
+ `);
+
+ $("hallForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  const t=state.tournaments.find(x=>x.id===$("hallTournament").value);
+  const champion=$("hallChampion").value;
+  const runner=$("hallRunner").value;
+
+  if(!t||!champion||!runner||champion===runner)
+   return toast("Choose a tournament and two different gamers.",true);
+
+  const {error}=await sb.from("hall_of_fame").insert({
+   tournament_id:t.id,
+   tournament_name:t.name,
+   champion_gamer_id:champion,
+   runner_up_gamer_id:runner,
+   format_label:t.format,
+   won_date:$("hallDate").value,
+   notes:$("hallNotes").value.trim()
+  });
+
+  if(error)return toast(error.message,true);
+
+  closeModal();
+  toast("Champion added to Hall of Fame!");
+  await loadHall();
+ });
+}
+
+async function deleteHallEntry(id){
+ if(!requireAdmin())return;
+ if(!confirm("Remove this Hall of Fame entry?"))return;
+
+ const {error}=await sb.from("hall_of_fame").delete().eq("id",id);
+ if(error)return toast(error.message,true);
+
+ await loadHall();
+ toast("Entry removed.");
+}
+
+/* =====================================
+   NOTIFICATIONS
+===================================== */
+
+async function loadNotifications(){
+ let query=sb.from("notifications").select("*")
+  .order("created_at",{ascending:false}).limit(100);
+
+ // Public users only receive public notifications.
+ // Admins can see all notifications.
+ if(!state.isAdmin)query=query.eq("is_public",true);
+
+ const {data,error}=await query;
+
+ if(error){
+  console.error(error);
+  return;
+ }
+
+ state.notifications=data||[];
+ renderNotifications();
+ renderAnnouncements();
+}
+
+function renderNotifications(){
+ $("notificationList").innerHTML=state.notifications.length?
+ state.notifications.map(n=>`
+  <div class="card">
+   <div class="row">
+    <strong style="color:var(--gold)">${esc(n.title)}</strong>
+    <small class="muted">${dateOnly(n.created_at)}</small>
+   </div>
+   <p>${esc(n.message)}</p>
+   <span class="pill">${n.is_public?"Public":"Private"}</span>
+  </div>
+ `).join(""):'<div class="empty">No notifications yet.</div>';
+}
+
+function renderAnnouncements(){
+ const publicItems=state.notifications.filter(n=>n.is_public);
+ $("homeAnnouncements").innerHTML=publicItems.length?
+ publicItems.slice(0,4).map(n=>`
+  <div style="padding:9px 0;border-bottom:1px solid var(--line)">
+   <strong>${esc(n.title)}</strong>
+   <p>${esc(n.message)}</p>
+  </div>
+ `).join(""):'<div class="empty">No announcements yet.</div>';
+}
+
+function openAnnouncementForm(){
+ if(!requireAdmin())return;
+
+ openModal("NEW ANNOUNCEMENT",`
+  <form id="announcementForm">
+   <div class="field"><label>Title</label>
+    <input id="announcementTitle" required>
+   </div>
+   <div class="field"><label>Message</label>
+    <textarea id="announcementMessage" required></textarea>
+   </div>
+   <button class="btn">Publish Announcement</button>
+  </form>
+ `);
+
+ $("announcementForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+
+  const {error}=await sb.from("notifications").insert({
+   title:$("announcementTitle").value.trim(),
+   message:$("announcementMessage").value.trim(),
+   type:"announcement",
+   is_public:true,
+   gamer_id:null,
+   match_id:null,
+   tournament_id:null
+  });
+
+  if(error)return toast(error.message,true);
+
+  closeModal();
+  toast("Announcement published!");
+  await loadNotifications();
+ });
+}
+
+/* =====================================
+   OVERVIEW
+===================================== */
+
+function updateOverview(){
+ $("totalGamers").textContent=state.gamers.length;
+ $("totalTournaments").textContent=state.tournaments.length;
+ $("totalMatches").textContent=state.matches.length;
+
+ $("publishedMatches").textContent=
+  state.matches.filter(m=>m.published_at).length;
+
+ const published=state.matches.filter(m=>
+  m.published_at&&m.home_score!==null&&m.away_score!==null
+ ).slice(-5).reverse();
+
+ $("homeResults").innerHTML=published.length?
+ published.map(m=>`
+  <div class="match">
+   <div>${esc(gamerName(m.home_gamer_id))}</div>
+   <div class="score">${m.home_score} : ${m.away_score}</div>
+   <div>${esc(gamerName(m.away_gamer_id))}</div>
+  </div>
+ `).join(""):'<div class="empty">No published results yet.</div>';
+}
+
+/* =====================================
+   LOAD ALL DATA
+===================================== */
+
+async function loadAll(){
+ await loadGamers();
+ await loadTournaments();
+ await loadMatches();
+ await loadNotifications();
+ await loadHall();
+
+ updateOverview();
+ renderGamers();
+ renderTournaments();
+ renderFixtures();
+ renderStandings();
+ renderStatistics();
+}
+
+async function initializeHub(){
+ if(SUPABASE_KEY==="sb_publishable_OOuIHeyjm7EhJzZqtXE-Tw_1u1oQYfd"){
+  toast("Add your Supabase publishable key in the code.",true);
+  return;
+ }
+
+ const {error}=await sb.auth.getSession();
+ if(error){
+  toast("Supabase connection error: "+error.message,true);
+  return;
+ }
+
+ await checkAuth();
+ await loadAll();
+
+ // Keep admin status updated after login/logout.
+ sb.auth.onAuthStateChange(async()=>{
+  setTimeout(async()=>{
+   await checkAuth();
+   await loadAll();
+  },0);
+ });
+}
+
+// Additional admin controls.
+const adminNav=document.querySelector('#mainNav button[data-page="admin"]');
+
+const hallButton=document.createElement("button");
+hallButton.className="btn secondary admin-only hidden";
+hallButton.textContent="+ Add Champion";
+hallButton.onclick=openHallForm;
+$("halloffame").prepend(hallButton);
+
+initializeHub().catch(error=>{
+ console.error(error);
+ toast("Website startup error: "+error.message,true);
+});
+
+/* =====================================
+   END OF SWALEH eSPORTS HUB
+===================================== */
+</script>
+</body>
+</html>
