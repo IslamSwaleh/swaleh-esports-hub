@@ -1798,6 +1798,45 @@ const makeRows=(pairs,stage,round)=>{
   return {winners};
  };
 
+// Resolve single-leg knockout matches.
+// A draw must be decided by penalties.
+const resolveSingleLegStage=stageMatches=>{
+ const winners=[];
+
+ if(!completed(stageMatches)){
+  return {waiting:true};
+ }
+
+ for(const m of stageMatches){
+  const home=Number(m.home_score);
+  const away=Number(m.away_score);
+
+  if(home>away){
+   winners.push(m.home_gamer_id);
+  }else if(away>home){
+   winners.push(m.away_gamer_id);
+  }else{
+   if(
+    m.home_penalties==null||
+    m.away_penalties==null
+   ){
+    return {waiting:true};
+   }
+
+   const hp=Number(m.home_penalties);
+   const ap=Number(m.away_penalties);
+
+   if(hp===ap)return {waiting:true};
+
+   winners.push(
+    hp>ap?m.home_gamer_id:m.away_gamer_id
+   );
+  }
+ }
+
+ return {winners};
+};
+
  // SWISS ROUNDS 1–8
  const swiss=all.filter(m=>m.stage==="swiss");
  const swissRound=Math.max(0,...swiss.map(m=>Number(m.round_number)||1));
