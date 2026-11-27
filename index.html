@@ -1206,14 +1206,18 @@ const stageOrder=
   ];
 
 
- const stageLabels={
+ 
+
+const stageLabels={
   swiss:"SWISS ROUNDS",
   playoff:"PLAYOFFS",
+  round_of_64:"ROUND OF 64",
+  round_of_32:"ROUND OF 32",
   round_of_16:"ROUND OF 16",
   quarter_final:"QUARTER-FINALS",
   semi_final:"SEMI-FINALS",
   final:"FINAL"
- };
+};
 
  const availableStages=stageOrder.filter(stage=>
   allMatches.some(m=>m.stage===stage)
