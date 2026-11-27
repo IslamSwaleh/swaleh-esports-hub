@@ -1230,6 +1230,157 @@ function gamerName(id){
 }
 
 
+let fixtureViewMode = "fixtures";
+
+function switchFixtureView(view){
+ fixtureViewMode = view;
+
+ $("fixturesViewBtn").classList.toggle(
+  "active",view==="fixtures"
+ );
+
+ $("bracketViewBtn").classList.toggle(
+  "active",view==="bracket"
+ );
+
+ $("bracketViewBtn").classList.toggle(
+  "secondary",view!=="bracket"
+ );
+
+ $("fixturesViewBtn").classList.toggle(
+  "secondary",view!=="fixtures"
+ );
+
+ renderFixtures();
+}
+
+function renderBracketView(tournament,allMatches){
+ const knockoutStages=[
+  "knockout",
+  "round_of_64",
+  "round_of_32",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final"
+ ];
+
+ const swissStages=[
+  "playoff",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final"
+ ];
+
+ const stages=tournament.format==="swiss"
+  ?swissStages
+  :knockoutStages;
+
+ const labels={
+  knockout:"OPENING ROUND",
+  round_of_64:"ROUND OF 64",
+  round_of_32:"ROUND OF 32",
+  round_of_16:"ROUND OF 16",
+  quarter_final:"QUARTER-FINALS",
+  semi_final:"SEMI-FINALS",
+  final:"GRAND FINAL"
+ };
+
+ const visibleMatches=allMatches.filter(m=>
+  stages.includes(m.stage)&&
+  (state.isAdmin||m.published_at)
+ );
+
+ const available=stages.filter(stage=>
+  visibleMatches.some(m=>m.stage===stage)
+ );
+
+ if(!available.length){
+  $("fixtureList").innerHTML=
+   '<div class="empty">Bracket will appear when the tournament reaches its knockout stages.</div>';
+  return;
+ }
+
+ const getWinner=m=>{
+  if(
+   m.status!=="completed"||
+   !m.published_at||
+   m.home_score===null||
+   m.away_score===null
+  )return null;
+
+  const h=Number(m.home_score);
+  const a=Number(m.away_score);
+
+  if(h>a)return m.home_gamer_id;
+  if(a>h)return m.away_gamer_id;
+
+  if(m.home_penalties==null||m.away_penalties==null)return null;
+
+  return Number(m.home_penalties)>Number(m.away_penalties)
+   ?m.home_gamer_id
+   :m.away_gamer_id;
+ };
+
+ $("fixtureList").innerHTML=`
+  <div class="card">
+   <div class="bracket-trophy">
+    🏆<br>
+    ROAD TO THE ${esc(tournament.name).toUpperCase()} CUP
+   </div>
+
+   <div class="bracket-scroll">
+    <div class="bracket">
+     ${available.map(stage=>{
+      const matches=visibleMatches
+       .filter(m=>m.stage===stage)
+       .sort((a,b)=>
+        (a.bracket_slot||"").localeCompare(
+         b.bracket_slot||""
+        )
+       );
+
+      return `
+       <div class="bracket-round">
+        <h3>${labels[stage]||stage.toUpperCase()}</h3>
+
+        ${matches.map(m=>{
+         const winner=getWinner(m);
+
+         return `
+          <div class="bracket-match">
+           <div class="bracket-team ${winner===m.home_gamer_id?"winner":""}">
+            <span>${esc(gamerName(m.home_gamer_id))}</span>
+            <strong>${m.home_score??"-"}</strong>
+           </div>
+
+           <div class="bracket-team ${winner===m.away_gamer_id?"winner":""}">
+            <span>${esc(gamerName(m.away_gamer_id))}</span>
+            <strong>${m.away_score??"-"}</strong>
+           </div>
+
+           ${m.home_score!==null&&
+             Number(m.home_score)===Number(m.away_score)&&
+             m.home_penalties!=null
+            ?`<small class="muted">Pens: ${m.home_penalties} - ${m.away_penalties}</small>`
+            :""}
+          </div>
+         `;
+        }).join("")}
+       </div>
+      `;
+     }).join("")}
+
+     <div class="bracket-round">
+      <div class="bracket-trophy">🏆<br>CHAMPION</div>
+     </div>
+    </div>
+   </div>
+  </div>
+ `;
+}
+
 
 function renderFixtures(){
  const tournamentId=$("fixtureTournament").value;
