@@ -1261,13 +1261,34 @@ async function openScoreForm(matchId){
 }
 
 
+
 async function publishResult(matchId){
  if(!requireAdmin())return;
  if(!confirm("Publish this result for public viewing?"))return;
 
  const m=state.matches.find(x=>x.id===matchId);
+
  if(!m||m.home_score===null||m.away_score===null){
   return toast("Enter the score first.",true);
+ }
+
+ const tournament=state.tournaments.find(t=>t.id===m.tournament_id);
+
+ // Final ikitoka draw, lazima penalties ziwe na mshindi.
+ if(
+  tournament?.format==="swiss"&&
+  m.stage==="final"&&
+  Number(m.home_score)===Number(m.away_score)
+ ){
+  if(
+   m.home_penalties==null||
+   m.away_penalties==null||
+   m.home_penalties===""||
+   m.away_penalties===""||
+   Number(m.home_penalties)===Number(m.away_penalties)
+  ){
+   return toast("Enter penalty scores with a winner before publishing the Final.",true);
+  }
  }
 
  const {error}=await sb.from("matches").update({
@@ -1277,7 +1298,6 @@ async function publishResult(matchId){
 
  if(error)return toast(error.message,true);
 
- // Notify both gamers.
  const notifications=[
   {
    gamer_id:m.home_gamer_id,
@@ -1303,10 +1323,11 @@ async function publishResult(matchId){
 
  toast("Result published!");
 
-await loadAll();
+ await loadAll();
 
-await advanceSwissTournament(m.tournament_id);
+ await advanceSwissTournament(m.tournament_id);
 }
+
 
 /* =====================================
    END OF PART 3
