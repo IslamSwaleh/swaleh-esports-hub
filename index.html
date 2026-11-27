@@ -1131,7 +1131,12 @@ function renderFixtures(){
    </div>
    <div class="match">
     <div class="team">${esc(gamerName(m.home_gamer_id))}</div>
-    <div class="score">${m.home_score??"-"} : ${m.away_score??"-"}</div>
+   <div class="score">
+ ${m.home_score??"-"} : ${m.away_score??"-"}
+ ${m.stage==="final"&&m.home_score!==null&&Number(m.home_score)===Number(m.away_score)&&m.home_penalties!=null&&m.away_penalties!=null
+ ?`<small>(${m.home_penalties} pens - ${m.away_penalties} pens)</small>`
+ :""}
+</div>
     <div class="team">${esc(gamerName(m.away_gamer_id))}</div>
    </div>
    ${m.is_bye?'<p class="muted">BYE</p>':""}
