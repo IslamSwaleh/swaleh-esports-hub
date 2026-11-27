@@ -1404,7 +1404,12 @@ const allMatches=state.matches.filter(m=>
 const tournament=state.tournaments.find(
  t=>t.id===tournamentId
 );
+if(!tournament)return;
 
+if(fixtureViewMode==="bracket"){
+ renderBracketView(tournament,allMatches);
+ return;
+}
 const stageOrder=
  tournament?.format==="knockout"
  ?[
