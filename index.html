@@ -1749,8 +1749,8 @@ async function advanceSwissTournament(tournamentId){
   }
 
   if(
-   finalMatch.home_penalties===null||
-   finalMatch.away_penalties===null
+ finalMatch.home_penalties==null||
+finalMatch.away_penalties==null
   )return;
 
   const hp=Number(finalMatch.home_penalties);
