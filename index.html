@@ -1668,17 +1668,60 @@ async function advanceSwissTournament(tournamentId){
  const insertMatches=async rows=>{
   if(!rows.length)return false;
 
-  const {error}=await sb.from("matches").insert(rows);
+  const stage=rows[0].stage;
+  const round=rows[0].round_number;
+  const lockKey=`${tournamentId}-${stage}-${round}`;
 
-  if(error){
-   console.error(error);
-   toast("Could not generate next round: "+error.message,true);
-   return false;
+  window.__matchInsertLocks ??= new Set();
+
+  if(window.__matchInsertLocks.has(lockKey)){
+    console.log("Fixture generation already running:",lockKey);
+    return false;
   }
 
-  await loadMatches();
-  return true;
- };
+  window.__matchInsertLocks.add(lockKey);
+
+  try{
+    const {data:existing,error:checkError}=await sb
+      .from("matches")
+      .select("bracket_slot")
+      .eq("tournament_id",tournamentId)
+      .eq("stage",stage)
+      .eq("round_number",round);
+
+    if(checkError)throw checkError;
+
+    const existingSlots=new Set(
+      (existing||[]).map(m=>m.bracket_slot)
+    );
+
+    const missingRows=rows.filter(
+      m=>!existingSlots.has(m.bracket_slot)
+    );
+
+    if(!missingRows.length){
+      console.log("Fixtures already exist:",lockKey);
+      return false;
+    }
+
+    const {error}=await sb
+      .from("matches")
+      .insert(missingRows);
+
+    if(error)throw error;
+
+    await loadMatches();
+    return true;
+
+  }catch(error){
+    console.error(error);
+    toast("Could not generate next round: "+error.message,true);
+    return false;
+
+  }finally{
+    window.__matchInsertLocks.delete(lockKey);
+  }
+};
 
  
 const makeRows=(pairs,stage,round)=>{
