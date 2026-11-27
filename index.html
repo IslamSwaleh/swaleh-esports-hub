@@ -1177,14 +1177,34 @@ const allMatches=state.matches.filter(m=>
   return;
  }
 
- const stageOrder=[
-  "swiss",
-  "playoff",
-  "round_of_16",
-  "quarter_final",
-  "semi_final",
-  "final"
- ];
+ 
+const tournament=state.tournaments.find(
+ t=>t.id===tournamentId
+);
+
+const stageOrder=
+ tournament?.format==="knockout"
+ ?[
+   "round_of_64",
+   "round_of_32",
+   "round_of_16",
+   "quarter_final",
+   "semi_final",
+   "final"
+  ]
+ :tournament?.format==="swiss"
+ ?[
+   "swiss",
+   "playoff",
+   "round_of_16",
+   "quarter_final",
+   "semi_final",
+   "final"
+  ]
+ :[
+   "league"
+  ];
+
 
  const stageLabels={
   swiss:"SWISS ROUNDS",
