@@ -2900,6 +2900,26 @@ async function renderTournamentAnalytics(){
   </div>
 
   <div class="card">
+   <h3 class="heading">🏆 TOURNAMENT WINNING PROBABILITY</h3>
+   <p class="muted">Estimated chances based on published tournament performance.</p>
+
+   ${!hasEnoughData
+    ? '<div class="empty">Insufficient Data — publish match results to calculate probabilities.</div>'
+    : stats.map(p=>`
+     <div style="margin:14px 0">
+      <div style="display:flex;justify-content:space-between;gap:10px">
+       <strong>${esc(p.name)}</strong>
+       <strong style="color:var(--gold)">${p.probability}%</strong>
+      </div>
+      <div style="height:9px;background:#555;border-radius:10px;overflow:hidden;margin-top:7px">
+       <div style="height:100%;width:${p.probability}%;background:#43c982;border-radius:10px"></div>
+      </div>
+     </div>
+    `).join("")
+   }
+  </div>
+
+  <div class="card">
    <h3 class="heading">TOURNAMENT LEADERBOARD</h3>
    <div class="tablewrap">
     <table>
