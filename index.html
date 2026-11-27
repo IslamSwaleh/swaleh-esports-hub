@@ -1362,7 +1362,40 @@ async function advanceSwissTournament(tournamentId){
    m.home_score!==null&&
    m.away_score!==null
   );
+const getAggregateWinners=matches=>{
+ const groups={};
 
+ matches.forEach(m=>{
+  const slot=(m.bracket_slot||"").replace(/-LEG[12]$/,"");
+
+  if(!groups[slot])groups[slot]=[];
+  groups[slot].push(m);
+ });
+
+ const winners=[];
+
+ for(const games of Object.values(groups)){
+  if(games.length!==2||!completed(games))return null;
+
+  const goals={};
+
+  games.forEach(m=>{
+   goals[m.home_gamer_id]=(goals[m.home_gamer_id]||0)+Number(m.home_score);
+   goals[m.away_gamer_id]=(goals[m.away_gamer_id]||0)+Number(m.away_score);
+  });
+
+  const players=Object.keys(goals);
+  if(players.length!==2)return null;
+
+  if(goals[players[0]]===goals[players[1]])return null;
+
+  winners.push(
+   goals[players[0]]>goals[players[1]]?players[0]:players[1]
+  );
+ }
+
+ return winners;
+};
  const insertMatches=async(rows)=>{
   if(!rows.length)return false;
 
@@ -1377,18 +1410,59 @@ async function advanceSwissTournament(tournamentId){
   return true;
  };
 
- const makeRows=(pairs,stage,round)=>pairs.map(pair=>({
-  tournament_id:tournamentId,
-  home_gamer_id:pair[0],
-  away_gamer_id:pair[1],
-  home_score:null,
-  away_score:null,
-  status:"scheduled",
-  round_number:round,
-  stage,
-  is_bye:false,
-  published_at:null
- }));
+ const makeRows=(pairs,stage,round)=>{
+ const rows=[];
+
+ pairs.forEach((pair,index)=>{
+  const slot=`${stage}-${round}-${index+1}`;
+
+  if(stage==="swiss"||stage==="replay"){
+   rows.push({
+    tournament_id:tournamentId,
+    home_gamer_id:pair[0],
+    away_gamer_id:pair[1],
+    home_score:null,
+    away_score:null,
+    status:"scheduled",
+    round_number:round,
+    stage,
+    bracket_slot:slot,
+    is_bye:false,
+    published_at:null
+   });
+  }else{
+   rows.push({
+    tournament_id:tournamentId,
+    home_gamer_id:pair[0],
+    away_gamer_id:pair[1],
+    home_score:null,
+    away_score:null,
+    status:"scheduled",
+    round_number:round,
+    stage,
+    bracket_slot:slot+"-LEG1",
+    is_bye:false,
+    published_at:null
+   });
+
+   rows.push({
+    tournament_id:tournamentId,
+    home_gamer_id:pair[1],
+    away_gamer_id:pair[0],
+    home_score:null,
+    away_score:null,
+    status:"scheduled",
+    round_number:round,
+    stage,
+    bracket_slot:slot+"-LEG2",
+    is_bye:false,
+    published_at:null
+   });
+  }
+ });
+
+ return rows;
+};
 
  // SWISS ROUNDS 1–8
  const swiss=all.filter(m=>m.stage==="swiss");
