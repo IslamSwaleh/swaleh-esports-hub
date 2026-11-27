@@ -969,7 +969,7 @@ function fillTournamentSelects(){
   `<option value="${t.id}">${esc(t.name)}</option>`
  ).join("");
 
- ["fixtureTournament","standingTournament"].forEach(id=>{
+["fixtureTournament","standingTournament","analyticsTournament"].forEach(id=>{
   const el=$(id);
   if(el){
    const old=el.value;
