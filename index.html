@@ -2242,6 +2242,7 @@ finalMatch.away_penalties==null
 }
 
 
+
 async function advanceKnockoutTournament(tournamentId){
  const tournament=state.tournaments.find(
   t=>t.id===tournamentId
@@ -2295,9 +2296,123 @@ async function advanceKnockoutTournament(tournamentId){
 
   const currentStage=stages[currentIndex];
 
-  // Final ikishakamilika, hakuna round nyingine.
-  if(currentStage==="final")return;
+  // FINAL: Tambua na hifadhi champion automatically.
+  if(currentStage==="final"){
+   const finalMatches=existing.filter(
+    m=>m.stage==="final"
+   );
 
+   if(finalMatches.length!==1){
+    toast("Final match configuration is invalid.",true);
+    return;
+   }
+
+   const finalMatch=finalMatches[0];
+
+   if(
+    finalMatch.status!=="completed" ||
+    !finalMatch.published_at ||
+    finalMatch.home_score===null ||
+    finalMatch.away_score===null
+   ){
+    return;
+   }
+
+   let championId=null;
+   let runnerUpId=null;
+
+   if(Number(finalMatch.home_score)>Number(finalMatch.away_score)){
+    championId=finalMatch.home_gamer_id;
+    runnerUpId=finalMatch.away_gamer_id;
+   }else if(Number(finalMatch.away_score)>Number(finalMatch.home_score)){
+    championId=finalMatch.away_gamer_id;
+    runnerUpId=finalMatch.home_gamer_id;
+   }else{
+    if(
+     finalMatch.home_penalties==null ||
+     finalMatch.away_penalties==null ||
+     Number(finalMatch.home_penalties)===Number(finalMatch.away_penalties)
+    ){
+     toast("Final draw needs a penalty winner.",true);
+     return;
+    }
+
+    if(Number(finalMatch.home_penalties)>Number(finalMatch.away_penalties)){
+     championId=finalMatch.home_gamer_id;
+     runnerUpId=finalMatch.away_gamer_id;
+    }else{
+     championId=finalMatch.away_gamer_id;
+     runnerUpId=finalMatch.home_gamer_id;
+    }
+   }
+
+   if(!championId || !runnerUpId){
+    toast("Could not identify the final winner.",true);
+    return;
+   }
+
+   if(!tournament.organizer_id){
+    toast("Tournament organizer ID is missing.",true);
+    return;
+   }
+
+   // Tumia published date ya final.
+   const wonDate=new Date(finalMatch.published_at)
+    .toISOString().slice(0,10);
+
+   const hallRecord={
+    tournament_id:tournamentId,
+    organizer_id:tournament.organizer_id,
+    tournament_name:tournament.name,
+    champion_gamer_id:championId,
+    runner_up_gamer_id:runnerUpId,
+    format_label:tournament.format,
+    won_date:wonDate,
+    notes:"Automatically recorded after Knockout final."
+   };
+
+   // Angalia kama tournament tayari iko Hall of Fame.
+   const {data:oldEntry,error:checkError}=await sb
+    .from("hall_of_fame")
+    .select("id")
+    .eq("tournament_id",tournamentId)
+    .maybeSingle();
+
+   if(checkError){
+    toast("Hall of Fame check failed: "+checkError.message,true);
+    return;
+   }
+
+   let saveError=null;
+
+   if(oldEntry){
+    const {error}=await sb
+     .from("hall_of_fame")
+     .update(hallRecord)
+     .eq("tournament_id",tournamentId);
+
+    saveError=error;
+   }else{
+    const {error}=await sb
+     .from("hall_of_fame")
+     .insert(hallRecord);
+
+    saveError=error;
+   }
+
+   if(saveError){
+    toast("Champion could not be saved: "+saveError.message,true);
+    return;
+   }
+
+   await loadHall();
+
+   toast("🏆 Champion successfully added to Hall of Fame!");
+
+   return;
+  }
+
+  // ROUNDS: Subiri matches zote zichapishwe.
   const currentMatches=existing
    .filter(m=>m.stage===currentStage)
    .sort((a,b)=>{
@@ -2311,7 +2426,6 @@ async function advanceKnockoutTournament(tournamentId){
 
   if(!currentMatches.length)return;
 
-  // Hakikisha kila match imekamilika na kuchapishwa.
   const allPublished=currentMatches.every(m=>
    m.status==="completed" &&
    m.published_at &&
@@ -2358,7 +2472,12 @@ async function advanceKnockoutTournament(tournamentId){
 
   const nextStage=stages[currentIndex+1];
 
-  // Zuia kutengeneza round inayofanana mara mbili.
+  if(!nextStage){
+   toast("Next Knockout stage could not be identified.",true);
+   return;
+  }
+
+  // Zuia round kuingizwa mara mbili.
   const alreadyExists=existing.some(m=>
    m.stage===nextStage
   );
@@ -2405,6 +2524,7 @@ async function advanceKnockoutTournament(tournamentId){
   window.__matchInsertLocks.delete(lockKey);
  }
 }
+
 
 /* =====================================
    STATISTICS
