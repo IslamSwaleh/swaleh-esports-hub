@@ -189,8 +189,22 @@ footer{text-align:center;color:#777;padding:25px;border-top:1px solid var(--line
 
 <section id="fixtures" class="section">
  <h2 class="heading">FIXTURES & RESULTS</h2>
- <div class="field"><label>Select tournament</label><select id="fixtureTournament"></select></div>
- <div id="fixtureList"></div>
+ <div class="field">
+ <label>Select tournament</label>
+ <select id="fixtureTournament"></select>
+</div>
+
+<div class="view-switch">
+ <button class="btn small active" id="fixturesViewBtn"
+  onclick="switchFixtureView('fixtures')">
+  Fixtures View
+ </button>
+
+ <button class="btn secondary small" id="bracketViewBtn"
+  onclick="switchFixtureView('bracket')">
+  🏆 Bracket View
+ </button>
+</div>
 </section>
 
 <section id="standings" class="section">
