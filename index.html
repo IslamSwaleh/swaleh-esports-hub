@@ -1254,13 +1254,14 @@ function switchFixtureView(view){
     "secondary", view !== "fixtures"
   );
 
-  try {
-    renderFixtures();
-  } catch(error) {
-    alert("BRACKET ERROR: " + error.message);
-    console.error(error);
-  }
-}
+  alert(
+  "View: " + view +
+  "\nTournament: " + $("fixtureTournament").value +
+  "\nMatches: " + (state.matches || []).length +
+  "\nFixture list exists: " + !!$("fixtureList")
+);
+
+renderFixtures();
 
 function renderBracketView(tournament,allMatches){
  const knockoutStages=[
