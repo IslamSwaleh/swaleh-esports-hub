@@ -1347,7 +1347,149 @@ const matches=state.matches.filter(m=>
   b.points-a.points||b.gd-a.gd||b.gf-a.gf
  );
 }
+async function advanceSwissTournament(tournamentId){
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
+ if(!tournament||tournament.format!=="swiss")return;
 
+ const all=state.matches.filter(m=>m.tournament_id===tournamentId);
+
+ const completed=matches=>
+  matches.length>0&&matches.every(m=>
+   m.published_at&&
+   m.home_score!==null&&
+   m.away_score!==null
+  );
+
+ const insertMatches=async(rows)=>{
+  if(!rows.length)return false;
+
+  const {error}=await sb.from("matches").insert(rows);
+  if(error){
+   console.error(error);
+   toast("Could not generate next round: "+error.message,true);
+   return false;
+  }
+
+  await loadMatches();
+  return true;
+ };
+
+ const makeRows=(pairs,stage,round)=>pairs.map(pair=>({
+  tournament_id:tournamentId,
+  home_gamer_id:pair[0],
+  away_gamer_id:pair[1],
+  home_score:null,
+  away_score:null,
+  status:"scheduled",
+  round_number:round,
+  stage,
+  is_bye:false,
+  published_at:null
+ }));
+
+ // SWISS ROUNDS 1–8
+ const swiss=all.filter(m=>m.stage==="swiss");
+ const swissRound=Math.max(0,...swiss.map(m=>Number(m.round_number)||1));
+
+ if(swissRound===0)return;
+
+ const currentSwiss=swiss.filter(m=>Number(m.round_number)===swissRound);
+ if(!completed(currentSwiss))return;
+
+ if(swissRound<8){
+  const table=await calculateTable(tournamentId);
+  if(table.length!==36)return;
+
+  const playedPairs=new Set(swiss.map(m=>
+   [m.home_gamer_id,m.away_gamer_id].sort().join(":")
+  ));
+
+  const remaining=table.map(p=>p.id);
+  const pairs=[];
+
+  while(remaining.length){
+   const first=remaining.shift();
+   let index=remaining.findIndex(id=>
+    !playedPairs.has([first,id].sort().join(":"))
+   );
+
+   if(index<0)index=0;
+
+   const second=remaining.splice(index,1)[0];
+   pairs.push([first,second]);
+  }
+
+  return insertMatches(makeRows(pairs,"swiss",swissRound+1));
+ }
+
+ // PLAYOFFS: POSITIONS 9–24
+ const playoff=all.filter(m=>m.stage==="playoff");
+ if(!playoff.length){
+  const table=await calculateTable(tournamentId);
+  if(table.length!==36)return;
+
+  const qualifiers=table.slice(8,24);
+  const pairs=[];
+
+  for(let i=0;i<8;i++){
+   pairs.push([qualifiers[i].id,qualifiers[15-i].id]);
+  }
+
+  return insertMatches(makeRows(pairs,"playoff",1));
+ }
+
+ if(!completed(playoff))return;
+
+ // ROUND OF 16: TOP 8 + PLAYOFF WINNERS
+ const r16=all.filter(m=>m.stage==="round_of_16");
+
+ if(!r16.length){
+  const table=await calculateTable(tournamentId);
+  if(table.length!==36)return;
+
+  const topEight=table.slice(0,8);
+  const winners=playoff.map(m=>({
+   id:Number(m.home_score)>Number(m.away_score)
+    ?m.home_gamer_id:m.away_gamer_id,
+   seed:table.findIndex(p=>
+    p.id===(Number(m.home_score)>Number(m.away_score)
+     ?m.home_gamer_id:m.away_gamer_id)
+   )
+  })).sort((a,b)=>b.seed-a.seed);
+
+  const pairs=topEight.map((p,i)=>[p.id,winners[i].id]);
+
+  return insertMatches(makeRows(pairs,"round_of_16",1));
+ }
+
+ const stages=[
+  {current:"round_of_16",next:"quarter_final"},
+  {current:"quarter_final",next:"semi_final"},
+  {current:"semi_final",next:"final"}
+ ];
+
+ for(const stage of stages){
+  const matches=all.filter(m=>m.stage===stage.current);
+
+  if(!matches.length||!completed(matches))continue;
+
+  if(all.some(m=>m.stage===stage.next))return;
+
+  const winners=matches.map(m=>
+   Number(m.home_score)>Number(m.away_score)
+    ?m.home_gamer_id:m.away_gamer_id
+  );
+
+  if(winners.length!==2&&stage.next==="final")return;
+
+  const pairs=[];
+  for(let i=0;i<winners.length;i+=2){
+   pairs.push([winners[i],winners[i+1]]);
+  }
+
+  return insertMatches(makeRows(pairs,stage.next,1));
+ }
+}
 
 /* =====================================
    STATISTICS
