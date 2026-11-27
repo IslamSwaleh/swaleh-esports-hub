@@ -1383,11 +1383,14 @@ async function openScoreForm(matchId){
  if(!m)return;
 
  const needsPenalties=[
+  "knockout",
+  "round_of_64",
+  "round_of_32",
   "round_of_16",
   "quarter_final",
   "semi_final",
   "final"
- ].includes(m.stage);
+].includes(m.stage);
 
  openModal("ENTER MATCH RESULT",`
   <p>${esc(gamerName(m.home_gamer_id))} vs ${esc(gamerName(m.away_gamer_id))}</p>
