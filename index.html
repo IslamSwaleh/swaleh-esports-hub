@@ -1391,6 +1391,7 @@ function renderBracketView(tournament,allMatches){
 }
 
 
+
 function renderFixtures(){
  const tournamentId=$("fixtureTournament").value;
 
@@ -1399,54 +1400,46 @@ function renderFixtures(){
   return;
  }
 
- // Show published matches and all knockout fixtures,
- // including scheduled Playoffs.
-const allMatches=state.matches.filter(m=>
+ const allMatches=state.matches.filter(m=>
   m.tournament_id===tournamentId
-);
+ );
+
  if(!allMatches.length){
   $("fixtureList").innerHTML='<div class="empty">No fixtures available.</div>';
   return;
  }
 
- 
-const tournament=state.tournaments.find(
- t=>t.id===tournamentId
-);
-if(!tournament)return;
+ const tournament=state.tournaments.find(
+  t=>t.id===tournamentId
+ );
 
-if(fixtureViewMode==="bracket"){
- renderBracketView(tournament,allMatches);
- return;
-}
-const stageOrder=
- tournament?.format==="knockout"
- ?[
-   "knockout",
-   "round_of_64",
-   "round_of_32",
-   "round_of_16",
-   "quarter_final",
-   "semi_final",
-   "final"
-  ]
- :tournament?.format==="swiss"
- ?[
-   "swiss",
-   "playoff",
-   "round_of_16",
-   "quarter_final",
-   "semi_final",
-   "final"
-  ]
- :[
-   "league"
-  ];
+ if(!tournament)return;
 
+ const stageOrder=
+  tournament.format==="knockout"
+  ?[
+    "knockout",
+    "round_of_64",
+    "round_of_32",
+    "round_of_16",
+    "quarter_final",
+    "semi_final",
+    "final"
+   ]
+  :tournament.format==="swiss"
+  ?[
+    "swiss",
+    "playoff",
+    "round_of_16",
+    "quarter_final",
+    "semi_final",
+    "final"
+   ]
+  :["league"];
 
- 
-
-const stageLabels={
+ const stageLabels={
+  league:"LEAGUE",
+  knockout:"KNOCKOUT",
   swiss:"SWISS ROUNDS",
   playoff:"PLAYOFFS",
   round_of_64:"ROUND OF 64",
@@ -1455,7 +1448,7 @@ const stageLabels={
   quarter_final:"QUARTER-FINALS",
   semi_final:"SEMI-FINALS",
   final:"FINAL"
-};
+ };
 
  const availableStages=stageOrder.filter(stage=>
   allMatches.some(m=>m.stage===stage)
@@ -1476,9 +1469,9 @@ const stageLabels={
   m.stage===currentStage
  );
 
- const rounds=currentStage==="swiss"
-  ?[...new Set(stageMatches.map(m=>Number(m.round_number)||1))].sort((a,b)=>a-b)
-  :[...new Set(stageMatches.map(m=>Number(m.round_number)||1))].sort((a,b)=>a-b);
+ const rounds=[...new Set(
+  stageMatches.map(m=>Number(m.round_number)||1)
+ )].sort((a,b)=>a-b);
 
  if(currentStage==="swiss"&&!rounds.includes(state.fixtureRound)){
   state.fixtureRound=rounds[0];
@@ -1487,7 +1480,9 @@ const stageLabels={
  const currentRound=state.fixtureRound;
 
  const matches=currentStage==="swiss"
-  ?stageMatches.filter(m=>(Number(m.round_number)||1)===currentRound)
+  ?stageMatches.filter(m=>
+    (Number(m.round_number)||1)===currentRound
+   )
   :stageMatches;
 
  const stageIndex=availableStages.indexOf(currentStage);
@@ -1558,6 +1553,7 @@ const stageLabels={
   `).join("")}
  `;
 }
+
 
 
 
