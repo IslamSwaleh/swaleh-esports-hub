@@ -780,21 +780,33 @@ function dateOnly(value){
    TOURNAMENT MANAGEMENT
 ===================================== */
 
+
 async function loadTournaments(){
- const {data,error}=await sb.from("tournaments")
-  .select("*").order("created_at",{ascending:false});
+ try {
+  const {data,error}=await sb.from("tournaments")
+   .select("*")
+   .order("created_at",{ascending:false});
 
- if(error){
-  console.error(error);
-  toast("Tournament loading error: "+error.message,true);
-  return;
+  if(error){
+   console.error("TOURNAMENT QUERY ERROR:",error);
+   toast("Tournament loading error: "+error.message,true);
+   return;
+  }
+
+  state.tournaments=data||[];
+
+  console.log("TOURNAMENTS LOADED:",state.tournaments.length,data);
+
+  renderTournaments();
+  fillTournamentSelects();
+  updateOverview();
+
+ } catch(error) {
+  console.error("TOURNAMENT STARTUP ERROR:",error);
+  alert("TOURNAMENT ERROR: "+error.message);
  }
-
- state.tournaments=data||[];
- renderTournaments();
- fillTournamentSelects();
- updateOverview();
 }
+
 
 function renderTournaments(){
  $("tournamentList").innerHTML=state.tournaments.length?
