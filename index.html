@@ -1676,61 +1676,32 @@ async function advanceSwissTournament(tournamentId){
   return true;
  };
 
- const makeRows=(pairs,stage,round)=>{
+ 
+const makeRows=(pairs,stage,round)=>{
   const rows=[];
 
   pairs.forEach((pair,index)=>{
    const slot=`${stage}-${round}-${index+1}`;
 
-   if(stage==="swiss"||stage==="final"){
-    rows.push({
-     tournament_id:tournamentId,
-     home_gamer_id:pair[0],
-     away_gamer_id:pair[1],
-     home_score:null,
-     away_score:null,
-     home_penalties:null,
-     away_penalties:null,
-     status:"scheduled",
-     round_number:round,
-     stage,
-     bracket_slot:slot,
-     is_bye:false,
-     published_at:null
-    });
-   }else{
-    rows.push({
-     tournament_id:tournamentId,
-     home_gamer_id:pair[0],
-     away_gamer_id:pair[1],
-     home_score:null,
-     away_score:null,
-     status:"scheduled",
-     round_number:round,
-     stage,
-     bracket_slot:slot+"-LEG1",
-     is_bye:false,
-     published_at:null
-    });
-
-    rows.push({
-     tournament_id:tournamentId,
-     home_gamer_id:pair[1],
-     away_gamer_id:pair[0],
-     home_score:null,
-     away_score:null,
-     status:"scheduled",
-     round_number:round,
-     stage,
-     bracket_slot:slot+"-LEG2",
-     is_bye:false,
-     published_at:null
-    });
-   }
+   rows.push({
+    tournament_id:tournamentId,
+    home_gamer_id:pair[0],
+    away_gamer_id:pair[1],
+    home_score:null,
+    away_score:null,
+    home_penalties:null,
+    away_penalties:null,
+    status:"scheduled",
+    round_number:round,
+    stage,
+    bracket_slot:slot,
+    is_bye:false,
+    published_at:null
+   });
   });
 
   return rows;
- };
+};
 
  // Resolve aggregate and create replay when aggregate is tied.
  const resolveTwoLegStage=stageMatches=>{
