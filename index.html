@@ -2089,6 +2089,170 @@ finalMatch.away_penalties==null
 }
 
 
+async function advanceKnockoutTournament(tournamentId){
+ const tournament=state.tournaments.find(
+  t=>t.id===tournamentId
+ );
+
+ if(!tournament || tournament.format!=="knockout")return;
+
+ const stages=[
+  "round_of_64",
+  "round_of_32",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final"
+ ];
+
+ const lockKey="knockout-"+tournamentId;
+
+ if(!window.__matchInsertLocks){
+  window.__matchInsertLocks=new Set();
+ }
+
+ if(window.__matchInsertLocks.has(lockKey))return;
+
+ window.__matchInsertLocks.add(lockKey);
+
+ try{
+  const {data:matches,error}=await sb
+   .from("matches")
+   .select("*")
+   .eq("tournament_id",tournamentId);
+
+  if(error){
+   toast(error.message,true);
+   return;
+  }
+
+  const existing=matches||[];
+
+  // Tafuta stage ya mwisho iliyopo.
+  let currentIndex=-1;
+
+  for(let i=stages.length-1;i>=0;i--){
+   if(existing.some(m=>m.stage===stages[i])){
+    currentIndex=i;
+    break;
+   }
+  }
+
+  if(currentIndex===-1)return;
+
+  const currentStage=stages[currentIndex];
+
+  // Final ikishakamilika, hakuna round nyingine.
+  if(currentStage==="final")return;
+
+  const currentMatches=existing
+   .filter(m=>m.stage===currentStage)
+   .sort((a,b)=>{
+    const getNumber=m=>{
+     const match=(m.bracket_slot||"").match(/-(\d+)$/);
+     return match?Number(match[1]):0;
+    };
+
+    return getNumber(a)-getNumber(b);
+   });
+
+  if(!currentMatches.length)return;
+
+  // Hakikisha kila match imekamilika na kuchapishwa.
+  const allPublished=currentMatches.every(m=>
+   m.status==="completed" &&
+   m.published_at &&
+   m.home_score!==null &&
+   m.away_score!==null
+  );
+
+  if(!allPublished)return;
+
+  const winners=[];
+
+  for(const m of currentMatches){
+   let winnerId=null;
+
+   if(Number(m.home_score)>Number(m.away_score)){
+    winnerId=m.home_gamer_id;
+   }else if(Number(m.away_score)>Number(m.home_score)){
+    winnerId=m.away_gamer_id;
+   }else{
+    if(
+     m.home_penalties==null ||
+     m.away_penalties==null ||
+     Number(m.home_penalties)===Number(m.away_penalties)
+    ){
+     toast("A tied Knockout match needs a penalty winner.",true);
+     return;
+    }
+
+    winnerId=
+     Number(m.home_penalties)>Number(m.away_penalties)
+      ?m.home_gamer_id
+      :m.away_gamer_id;
+   }
+
+   if(!winnerId)return;
+
+   winners.push(winnerId);
+  }
+
+  if(winners.length<2 || winners.length%2!==0){
+   toast("Knockout progression could not pair the winners.",true);
+   return;
+  }
+
+  const nextStage=stages[currentIndex+1];
+
+  // Zuia kutengeneza round inayofanana mara mbili.
+  const alreadyExists=existing.some(m=>
+   m.stage===nextStage
+  );
+
+  if(alreadyExists)return;
+
+  const rows=[];
+
+  for(let i=0;i<winners.length;i+=2){
+   rows.push({
+    tournament_id:tournamentId,
+    organizer_id:tournament.organizer_id,
+    home_gamer_id:winners[i],
+    away_gamer_id:winners[i+1],
+    home_score:null,
+    away_score:null,
+    home_penalties:null,
+    away_penalties:null,
+    status:"scheduled",
+    round_number:1,
+    stage:nextStage,
+    bracket_slot:nextStage+"-1-"+(i/2+1),
+    is_bye:false,
+    published_at:null
+   });
+  }
+
+  const {error:insertError}=await sb
+   .from("matches")
+   .insert(rows);
+
+  if(insertError){
+   toast(insertError.message,true);
+   return;
+  }
+
+  toast("Knockout advanced to "+nextStage+"!");
+
+  await loadAll();
+
+ }catch(error){
+  toast(error.message||"Knockout progression failed.",true);
+ }finally{
+  window.__matchInsertLocks.delete(lockKey);
+ }
+}
+
 /* =====================================
    STATISTICS
 ===================================== */
