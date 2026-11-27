@@ -1332,7 +1332,14 @@ function changeFixtureRound(direction){
 
  const index=rounds.indexOf(state.fixtureRound);
  const nextIndex=index+direction;
+// Keep Knockout navigation separate from Swiss.
+if(tournament?.format==="knockout"){
+ if(nextIndex<0||nextIndex>=availableStages.length)return;
 
+ state.fixtureStage=availableStages[nextIndex];
+ renderFixtures();
+ return;
+}
  if(nextIndex<0||nextIndex>=rounds.length)return;
 
  state.fixtureRound=rounds[nextIndex];
