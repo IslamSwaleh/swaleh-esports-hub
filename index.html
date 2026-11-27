@@ -1115,6 +1115,7 @@ function gamerName(id){
 }
 
 
+
 function renderFixtures(){
  const tournamentId=$("fixtureTournament").value;
 
@@ -1123,9 +1124,11 @@ function renderFixtures(){
   return;
  }
 
+ // Show published matches and all knockout fixtures,
+ // including scheduled Playoffs.
  const allMatches=state.matches.filter(m=>
   m.tournament_id===tournamentId&&
-  (state.isAdmin||m.published_at)
+  (state.isAdmin||m.published_at||m.stage!=="swiss")
  );
 
  if(!allMatches.length){
@@ -1133,39 +1136,93 @@ function renderFixtures(){
   return;
  }
 
- const rounds=[...new Set(
-  allMatches.map(m=>Number(m.round_number)||1)
- )].sort((a,b)=>a-b);
+ const stageOrder=[
+  "swiss",
+  "playoff",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final"
+ ];
 
- if(!rounds.includes(state.fixtureRound)){
+ const stageLabels={
+  swiss:"SWISS ROUNDS",
+  playoff:"PLAYOFFS",
+  round_of_16:"ROUND OF 16",
+  quarter_final:"QUARTER-FINALS",
+  semi_final:"SEMI-FINALS",
+  final:"FINAL"
+ };
+
+ const availableStages=stageOrder.filter(stage=>
+  allMatches.some(m=>m.stage===stage)
+ );
+
+ if(!availableStages.length){
+  $("fixtureList").innerHTML='<div class="empty">No fixtures available.</div>';
+  return;
+ }
+
+ if(!availableStages.includes(state.fixtureStage)){
+  state.fixtureStage=availableStages[0];
+ }
+
+ const currentStage=state.fixtureStage;
+
+ const stageMatches=allMatches.filter(m=>
+  m.stage===currentStage
+ );
+
+ const rounds=currentStage==="swiss"
+  ?[...new Set(stageMatches.map(m=>Number(m.round_number)||1))].sort((a,b)=>a-b)
+  :[...new Set(stageMatches.map(m=>Number(m.round_number)||1))].sort((a,b)=>a-b);
+
+ if(currentStage==="swiss"&&!rounds.includes(state.fixtureRound)){
   state.fixtureRound=rounds[0];
  }
 
  const currentRound=state.fixtureRound;
- const matches=allMatches.filter(m=>
-  (Number(m.round_number)||1)===currentRound
- );
+
+ const matches=currentStage==="swiss"
+  ?stageMatches.filter(m=>(Number(m.round_number)||1)===currentRound)
+  :stageMatches;
+
+ const stageIndex=availableStages.indexOf(currentStage);
+ const isFirstStage=stageIndex===0;
+ const isLastStage=stageIndex===availableStages.length-1;
 
  $("fixtureList").innerHTML=`
   <div class="card">
    <div class="row" style="justify-content:space-between;align-items:center;">
     <button class="btn secondary small"
-     onclick="changeFixtureRound(-1)"
-     ${currentRound===rounds[0]?"disabled":""}>
+     onclick="changeFixtureStage(-1)"
+     ${isFirstStage&&currentStage==="swiss"&&currentRound===rounds[0]?"disabled":""}>
      Previous
     </button>
 
-    <strong>ROUND ${currentRound}</strong>
+    <strong>${stageLabels[currentStage]||currentStage.toUpperCase()}</strong>
 
     <button class="btn small"
-     onclick="changeFixtureRound(1)"
-     ${currentRound===rounds[rounds.length-1]?"disabled":""}>
+     onclick="changeFixtureStage(1)"
+     ${isLastStage&&(
+       currentStage!=="swiss"||
+       currentRound===rounds[rounds.length-1]
+      )?"disabled":""}>
      Next
     </button>
    </div>
-   <p class="muted" style="text-align:center;margin:8px 0 0;">
-    Round ${rounds.indexOf(currentRound)+1} of ${rounds.length}
-   </p>
+
+   ${currentStage==="swiss"?`
+    <p class="muted" style="text-align:center;margin:8px 0 0;">
+     <button class="btn secondary small"
+      onclick="changeFixtureRound(-1)"
+      ${currentRound===rounds[0]?"disabled":""}>← Round</button>
+     <strong> ROUND ${currentRound} of ${rounds.length} </strong>
+     <button class="btn secondary small"
+      onclick="changeFixtureRound(1)"
+      ${currentRound===rounds[rounds.length-1]?"disabled":""}>Round →</button>
+    </p>
+   `:""}
   </div>
 
   ${matches.map(m=>`
@@ -1179,7 +1236,7 @@ function renderFixtures(){
      <div class="team">${esc(gamerName(m.home_gamer_id))}</div>
      <div class="score">
       ${m.home_score??"-"} : ${m.away_score??"-"}
-      ${m.stage==="final"&&m.home_score!==null&&Number(m.home_score)===Number(m.away_score)&&m.home_penalties!=null&&m.away_penalties!=null
+      ${m.home_score!==null&&Number(m.home_score)===Number(m.away_score)&&m.home_penalties!=null&&m.away_penalties!=null
        ?`<small>(${m.home_penalties} pens - ${m.away_penalties} pens)</small>`
        :""}
      </div>
@@ -1198,6 +1255,104 @@ function renderFixtures(){
   `).join("")}
  `;
 }
+
+function changeFixtureRound(direction){
+ const tournamentId=$("fixtureTournament").value;
+
+ const rounds=[...new Set(
+  state.matches
+   .filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   )
+   .map(m=>Number(m.round_number)||1)
+ )].sort((a,b)=>a-b);
+
+ const index=rounds.indexOf(state.fixtureRound);
+ const nextIndex=index+direction;
+
+ if(nextIndex<0||nextIndex>=rounds.length)return;
+
+ state.fixtureRound=rounds[nextIndex];
+ renderFixtures();
+}
+
+function changeFixtureStage(direction){
+ const stageOrder=[
+  "swiss",
+  "playoff",
+  "round_of_16",
+  "quarter_final",
+  "semi_final",
+  "final"
+ ];
+
+ const tournamentId=$("fixtureTournament").value;
+
+ const availableStages=stageOrder.filter(stage=>
+  state.matches.some(m=>
+   m.tournament_id===tournamentId&&
+   m.stage===stage&&
+   (state.isAdmin||m.published_at||m.stage!=="swiss")
+  )
+ );
+
+ const index=availableStages.indexOf(state.fixtureStage);
+
+ // From Swiss Round 8, Next opens Playoffs.
+ if(state.fixtureStage==="swiss"&&direction===1){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  if(state.fixtureRound!==rounds[rounds.length-1]){
+   changeFixtureRound(1);
+   return;
+  }
+ }
+
+ // From Playoffs, Previous returns to Swiss Round 8.
+ if(state.fixtureStage==="playoff"&&direction===-1){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  state.fixtureStage="swiss";
+  state.fixtureRound=rounds[rounds.length-1]||1;
+  renderFixtures();
+  return;
+ }
+
+ const nextIndex=index+direction;
+
+ if(nextIndex<0||nextIndex>=availableStages.length)return;
+
+ state.fixtureStage=availableStages[nextIndex];
+
+ if(state.fixtureStage==="swiss"){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  state.fixtureRound=rounds[rounds.length-1]||1;
+ }
+
+ renderFixtures();
+}
+
 
 function changeFixtureRound(direction){
  const tournamentId=$("fixtureTournament").value;
