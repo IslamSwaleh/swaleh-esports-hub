@@ -1321,34 +1321,6 @@ const stageLabels={
  `;
 }
 
-function changeFixtureRound(direction){
- const tournamentId=$("fixtureTournament").value;
-
- const rounds=[...new Set(
-  state.matches
-   .filter(m=>
-    m.tournament_id===tournamentId&&
-    m.stage==="swiss"&&
-    (state.isAdmin||m.published_at)
-   )
-   .map(m=>Number(m.round_number)||1)
- )].sort((a,b)=>a-b);
-
- const index=rounds.indexOf(state.fixtureRound);
- const nextIndex=index+direction;
-// Keep Knockout navigation separate from Swiss.
-if(tournament?.format==="knockout"){
- if(nextIndex<0||nextIndex>=availableStages.length)return;
-
- state.fixtureStage=availableStages[nextIndex];
- renderFixtures();
- return;
-}
- if(nextIndex<0||nextIndex>=rounds.length)return;
-
- state.fixtureRound=rounds[nextIndex];
- renderFixtures();
-}
 
 
 
