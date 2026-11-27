@@ -1052,6 +1052,7 @@ async function generateFixtures(tournamentId){
 
  const rows=pairs.map(pair=>({
   tournament_id:tournamentId,
+  organizer_id:tournament.organizer_id,
   home_gamer_id:pair[0],
   away_gamer_id:pair[1],
   home_score:null,
@@ -1127,11 +1128,10 @@ function renderFixtures(){
 
  // Show published matches and all knockout fixtures,
  // including scheduled Playoffs.
- const allMatches=state.matches.filter(m=>
+const allMatches=state.matches.filter(m=>
   m.tournament_id===tournamentId&&
-  (state.isAdmin||m.published_at||m.stage!=="swiss")
- );
-
+  (state.isAdmin||m.published_at)
+);
  if(!allMatches.length){
   $("fixtureList").innerHTML='<div class="empty">No fixtures available.</div>';
   return;
