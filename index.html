@@ -1620,8 +1620,11 @@ async function publishResult(matchId){
 
  await loadAll();
 
- await advanceSwissTournament(m.tournament_id);
-}
+ if(tournament?.format==="knockout"){
+  await advanceKnockoutTournament(m.tournament_id);
+ }else if(tournament?.format==="swiss"){
+  await advanceSwissTournament(m.tournament_id);
+ }
 
 
 /* =====================================
