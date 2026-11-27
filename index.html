@@ -1356,6 +1356,8 @@ function changeFixtureStage(direction){
 
 function changeFixtureRound(direction){
  const tournamentId=$("fixtureTournament").value;
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
+ if(!tournament)return;
 
  const rounds=[...new Set(
   state.matches
@@ -1378,32 +1380,14 @@ function changeFixtureRound(direction){
 
 function changeFixtureStage(direction){
  const tournamentId=$("fixtureTournament").value;
-
- const tournament=state.tournaments.find(
-  t=>t.id===tournamentId
- );
-
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
  if(!tournament)return;
 
  const stageOrder=
   tournament.format==="knockout"
-  ?[
-    "round_of_64",
-    "round_of_32",
-    "round_of_16",
-    "quarter_final",
-    "semi_final",
-    "final"
-   ]
+  ?["round_of_64","round_of_32","round_of_16","quarter_final","semi_final","final"]
   :tournament.format==="swiss"
-  ?[
-    "swiss",
-    "playoff",
-    "round_of_16",
-    "quarter_final",
-    "semi_final",
-    "final"
-   ]
+  ?["swiss","playoff","round_of_16","quarter_final","semi_final","final"]
   :["league"];
 
  const availableStages=stageOrder.filter(stage=>
