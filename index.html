@@ -2816,6 +2816,22 @@ async function renderTournamentAnalytics(){
   b.points-a.points||b.gd-a.gd||b.goals-a.goals
  );
 
+ // Calculate relative tournament winning probabilities.
+ const hasEnoughData = matches.length > 0 && stats.length > 0;
+
+ const strengthScores = stats.map(p =>
+  1 + (p.wins * 3) + p.draws +
+  (p.gd * 0.25) + (p.goals * 0.1)
+ );
+
+ const strengthTotal = strengthScores.reduce((sum,n)=>sum+n,0);
+
+ stats.forEach((p,i)=>{
+  p.probability = hasEnoughData && strengthTotal > 0
+   ? Number((strengthScores[i] / strengthTotal * 100).toFixed(1))
+   : null;
+ });
+
  const matchWins=matches.filter(m=>
   Number(m.home_score)!==Number(m.away_score)
  ).length;
