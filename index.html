@@ -1495,31 +1495,6 @@ async function openScoreForm(matchId){
 }
 
 
-  state.matches=state.matches.map(x=>
-   x.id===matchId?{...x,...data[0]}:x
-  );
-
-  renderFixtures();
-
-  await sb.from("result_audit_logs").insert({
-   match_id:matchId,
-   previous_home_score:oldHome,
-   previous_away_score:oldAway,
-   new_home_score:home,
-   new_away_score:away,
-   action_type:"score_updated",
-   reason:"Admin updated match result",
-   changed_by:state.user.id
-  });
-
-  closeModal();
-  toast("Score saved. Publish it to make it public.");
-  await loadMatches();
- });
-}
-
-
-
 async function publishResult(matchId){
  if(!requireAdmin())return;
  if(!confirm("Publish this result for public viewing?"))return;
