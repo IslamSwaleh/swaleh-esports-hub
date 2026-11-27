@@ -1384,15 +1384,28 @@ function changeFixtureStage(direction){
  if(!tournament)return;
 
  const stageOrder=
-  tournament.format==="knockout"
-  ?[
-    "round_of_64",
-    "round_of_32",
-    "round_of_16",
-    "quarter_final",
-    "semi_final",
-    "final"
-   ]
+ tournament?.format==="knockout"
+ ?[
+   "knockout",
+   "round_of_64",
+   "round_of_32",
+   "round_of_16",
+   "quarter_final",
+   "semi_final",
+   "final"
+  ]
+ :tournament?.format==="swiss"
+ ?[
+   "swiss",
+   "playoff",
+   "round_of_16",
+   "quarter_final",
+   "semi_final",
+   "final"
+  ]
+ :[
+   "league"
+  ];
   :tournament.format==="swiss"
   ?[
     "swiss",
