@@ -1941,15 +1941,13 @@ const resolveSingleLegStage=stageMatches=>{
 
   if(all.some(m=>m.stage===stage.next))continue;
 
-  const result=resolveTwoLegStage(matches);
+  
+const result=resolveSingleLegStage(matches);
 
-  if(result.waiting)return;
+if(result.waiting)return;
 
-  if(result.replayRows){
-   return insertMatches(result.replayRows);
-  }
+const winners=result.winners;
 
-  const winners=result.winners;
 
   if(winners.length%2!==0)return;
 
