@@ -1499,8 +1499,9 @@ const getAggregateWinners=matches=>{
   return insertMatches(makeRows(pairs,"swiss",swissRound+1));
  }
 
- // PLAYOFFS: POSITIONS 9–24
+  // PLAYOFFS: POSITIONS 9–24
  const playoff=all.filter(m=>m.stage==="playoff");
+
  if(!playoff.length){
   const table=await calculateTable(tournamentId);
   if(table.length!==36)return;
@@ -1517,6 +1518,16 @@ const getAggregateWinners=matches=>{
 
  if(!completed(playoff))return;
 
+ const playoffWinners=getAggregateWinners(playoff);
+
+ // Aggregate ikiwa sare, tutashughulikia replay.
+ if(!playoffWinners){
+  return toast("Playoff aggregate is tied. Replay required.",true);
+ }
+
+ // ROUND OF 16: TOP 8 + PLAYOFF WINNERS
+ const r16=all.filter(m=>m.stage==="round_of_16");
+
  // ROUND OF 16: TOP 8 + PLAYOFF WINNERS
  const r16=all.filter(m=>m.stage==="round_of_16");
 
@@ -1525,13 +1536,9 @@ const getAggregateWinners=matches=>{
   if(table.length!==36)return;
 
   const topEight=table.slice(0,8);
-  const winners=playoff.map(m=>({
-   id:Number(m.home_score)>Number(m.away_score)
-    ?m.home_gamer_id:m.away_gamer_id,
-   seed:table.findIndex(p=>
-    p.id===(Number(m.home_score)>Number(m.away_score)
-     ?m.home_gamer_id:m.away_gamer_id)
-   )
+  const winners=playoffWinners.map(id=>({
+   id,
+   seed:table.findIndex(p=>p.id===id)
   })).sort((a,b)=>b.seed-a.seed);
 
   const pairs=topEight.map((p,i)=>[p.id,winners[i].id]);
