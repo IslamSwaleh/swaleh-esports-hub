@@ -1103,7 +1103,10 @@ async function loadMatches(){
    FIXTURES AND RESULTS
 ===================================== */
 
-$("fixtureTournament").addEventListener("change",renderFixtures);
+$("fixtureTournament").addEventListener("change",()=>{
+ state.fixtureRound=1;
+ renderFixtures();
+});
 $("standingTournament").addEventListener("change",renderStandings);
 
 function gamerName(id){
