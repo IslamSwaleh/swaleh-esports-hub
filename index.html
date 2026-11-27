@@ -973,6 +973,7 @@ async function saveRegistrations(tournamentId){
 
 
  
+
 async function generateFixtures(tournamentId){
  if(!requireAdmin())return;
 
@@ -1009,22 +1010,25 @@ async function generateFixtures(tournamentId){
   return toast("Fixtures already exist. Avoid generating duplicates.",true);
  }
 
- let pairs=[];
- let stage="knockout";
+ let rows=[];
 
  if(tournament.format==="league"){
-  stage="league";
-
   for(let i=0;i<ids.length;i++){
    for(let j=i+1;j<ids.length;j++){
-    pairs.push([ids[i],ids[j]]);
+    rows.push({
+     tournament_id:tournamentId,
+     organizer_id:tournament.organizer_id,
+     home_gamer_id:ids[i],
+     away_gamer_id:ids[j],
+     status:"scheduled",
+     round_number:1,
+     stage:"league",
+     is_bye:false
+    });
    }
   }
 
  }else if(tournament.format==="swiss"){
-  stage="swiss";
-
-  // Randomize players for the first Swiss round.
   const shuffled=[...ids];
 
   for(let i=shuffled.length-1;i>0;i--){
@@ -1032,9 +1036,17 @@ async function generateFixtures(tournamentId){
    [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
   }
 
-  // 36 gamers = 18 matches, with no byes.
   for(let i=0;i<shuffled.length;i+=2){
-   pairs.push([shuffled[i],shuffled[i+1]]);
+   rows.push({
+    tournament_id:tournamentId,
+    organizer_id:tournament.organizer_id,
+    home_gamer_id:shuffled[i],
+    away_gamer_id:shuffled[i+1],
+    status:"scheduled",
+    round_number:1,
+    stage:"swiss",
+    is_bye:false
+   });
   }
 
  }else{
@@ -1045,25 +1057,50 @@ async function generateFixtures(tournamentId){
    [shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];
   }
 
-  for(let i=0;i<shuffled.length;i+=2){
-   pairs.push([shuffled[i],shuffled[i+1]||null]);
+  const size=2**Math.ceil(Math.log2(shuffled.length));
+  const byes=size-shuffled.length;
+  const firstStage=size===64?"round_of_64":
+   size===32?"round_of_32":
+   size===16?"round_of_16":
+   size===8?"quarter_final":
+   size===4?"semi_final":"final";
+
+  const roundGamers=shuffled.slice(byes);
+
+  for(let i=0;i<byes;i++){
+   rows.push({
+    tournament_id:tournamentId,
+    organizer_id:tournament.organizer_id,
+    home_gamer_id:shuffled[i],
+    away_gamer_id:null,
+    status:"completed",
+    round_number:1,
+    stage:firstStage,
+    bracket_slot:firstStage+"-1-BYE-"+(i+1),
+    is_bye:true,
+    published_at:null
+   });
+  }
+
+  for(let i=0;i<roundGamers.length;i+=2){
+   rows.push({
+    tournament_id:tournamentId,
+    organizer_id:tournament.organizer_id,
+    home_gamer_id:roundGamers[i],
+    away_gamer_id:roundGamers[i+1],
+    home_score:null,
+    away_score:null,
+    home_penalties:null,
+    away_penalties:null,
+    status:"scheduled",
+    round_number:1,
+    stage:firstStage,
+    bracket_slot:firstStage+"-1-"+(i/2+1),
+    is_bye:false,
+    published_at:null
+   });
   }
  }
-
- const rows=pairs.map(pair=>({
-  tournament_id:tournamentId,
-  organizer_id:tournament.organizer_id,
-  
-  home_gamer_id:pair[0],
-  away_gamer_id:pair[1],
-  home_score:null,
-  away_score:null,
-  status:pair[1]?"scheduled":"completed",
-  round_number:1,
-  stage,
-  is_bye:!pair[1],
-  published_at:null
- }));
 
  const {error:insertError}=await sb
   .from("matches")
@@ -1071,15 +1108,12 @@ async function generateFixtures(tournamentId){
 
  if(insertError)return toast(insertError.message,true);
 
- toast(
-  tournament.format==="swiss"
-   ?"Swiss Round 1 generated: 36 gamers, 18 matches."
-   :"Fixtures generated for "+ids.length+" registered gamers!"
- );
+ toast("Fixtures generated for "+ids.length+" registered gamers!");
 
  closeModal();
  await loadMatches();
 }
+
 
 
 
