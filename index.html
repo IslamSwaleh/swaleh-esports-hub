@@ -1346,7 +1346,45 @@ if(tournament?.format==="knockout"){
  renderFixtures();
 }
 
+
 function changeFixtureStage(direction){
+ const tournamentId=$("fixtureTournament").value;
+
+ const tournament=state.tournaments.find(
+  t=>t.id===tournamentId
+ );
+
+ if(!tournament)return;
+
+ // KNOCKOUT NAVIGATION
+ if(tournament.format==="knockout"){
+  const stageOrder=[
+   "round_of_64",
+   "round_of_32",
+   "round_of_16",
+   "quarter_final",
+   "semi_final",
+   "final"
+  ];
+
+  const availableStages=stageOrder.filter(stage=>
+   state.matches.some(m=>
+    m.tournament_id===tournamentId&&
+    m.stage===stage
+   )
+  );
+
+  const index=availableStages.indexOf(state.fixtureStage);
+  const nextIndex=index+direction;
+
+  if(nextIndex<0||nextIndex>=availableStages.length)return;
+
+  state.fixtureStage=availableStages[nextIndex];
+  renderFixtures();
+  return;
+ }
+
+ // SWISS AND OTHER FORMATS
  const stageOrder=[
   "swiss",
   "playoff",
@@ -1355,6 +1393,68 @@ function changeFixtureStage(direction){
   "semi_final",
   "final"
  ];
+
+ const availableStages=stageOrder.filter(stage=>
+  state.matches.some(m=>
+   m.tournament_id===tournamentId&&
+   m.stage===stage&&
+   (state.isAdmin||m.published_at||m.stage!=="swiss")
+  )
+ );
+
+ const index=availableStages.indexOf(state.fixtureStage);
+
+ if(state.fixtureStage==="swiss"&&direction===1){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  if(state.fixtureRound!==rounds[rounds.length-1]){
+   changeFixtureRound(1);
+   return;
+  }
+ }
+
+ if(state.fixtureStage==="playoff"&&direction===-1){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  state.fixtureStage="swiss";
+  state.fixtureRound=rounds[rounds.length-1]||1;
+  renderFixtures();
+  return;
+ }
+
+ const nextIndex=index+direction;
+
+ if(nextIndex<0||nextIndex>=availableStages.length)return;
+
+ state.fixtureStage=availableStages[nextIndex];
+
+ if(state.fixtureStage==="swiss"){
+  const rounds=[...new Set(
+   state.matches.filter(m=>
+    m.tournament_id===tournamentId&&
+    m.stage==="swiss"&&
+    (state.isAdmin||m.published_at)
+   ).map(m=>Number(m.round_number)||1)
+  )].sort((a,b)=>a-b);
+
+  state.fixtureRound=rounds[rounds.length-1]||1;
+ }
+
+ renderFixtures();
+}
+
 
  const tournamentId=$("fixtureTournament").value;
 
