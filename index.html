@@ -1255,7 +1255,10 @@ async function publishResult(matchId){
  await sb.from("notifications").insert(notifications);
 
  toast("Result published!");
- await loadAll();
+
+await loadAll();
+
+await advanceSwissTournament(m.tournament_id);
 }
 
 /* =====================================
