@@ -1051,7 +1051,10 @@ async function generateFixtures(tournamentId){
 
  const tournament=state.tournaments.find(t=>t.id===tournamentId);
  if(!tournament)return;
-
+if(fixtureViewMode==="bracket"){
+ renderBracketView(tournament,allMatches);
+ return;
+}
  const {data:registrations,error:regError}=await sb
   .from("tournament_registrations")
   .select("gamer_id")
