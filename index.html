@@ -1236,25 +1236,30 @@ function gamerName(id){
 let fixtureViewMode = "fixtures";
 
 function switchFixtureView(view){
- fixtureViewMode = view;
+  fixtureViewMode = view;
 
- $("fixturesViewBtn").classList.toggle(
-  "active",view==="fixtures"
- );
+  $("fixturesViewBtn").classList.toggle(
+    "active", view === "fixtures"
+  );
 
- $("bracketViewBtn").classList.toggle(
-  "active",view==="bracket"
- );
+  $("bracketViewBtn").classList.toggle(
+    "active", view === "bracket"
+  );
 
- $("bracketViewBtn").classList.toggle(
-  "secondary",view!=="bracket"
- );
+  $("bracketViewBtn").classList.toggle(
+    "secondary", view !== "bracket"
+  );
 
- $("fixturesViewBtn").classList.toggle(
-  "secondary",view!=="fixtures"
- );
+  $("fixturesViewBtn").classList.toggle(
+    "secondary", view !== "fixtures"
+  );
 
- renderFixtures();
+  try {
+    renderFixtures();
+  } catch(error) {
+    alert("BRACKET ERROR: " + error.message);
+    console.error(error);
+  }
 }
 
 function renderBracketView(tournament,allMatches){
