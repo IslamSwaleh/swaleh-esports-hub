@@ -1528,9 +1528,6 @@ const getAggregateWinners=matches=>{
  // ROUND OF 16: TOP 8 + PLAYOFF WINNERS
  const r16=all.filter(m=>m.stage==="round_of_16");
 
- // ROUND OF 16: TOP 8 + PLAYOFF WINNERS
- const r16=all.filter(m=>m.stage==="round_of_16");
-
  if(!r16.length){
   const table=await calculateTable(tournamentId);
   if(table.length!==36)return;
