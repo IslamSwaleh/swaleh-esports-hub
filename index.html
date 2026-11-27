@@ -1567,6 +1567,25 @@ async function publishResult(matchId){
   }
  }
 
+ // Knockout: kila sare lazima iamuliwe kwa penalties.
+ if(
+  tournament?.format==="knockout" &&
+  Number(m.home_score)===Number(m.away_score)
+ ){
+  if(
+   m.home_penalties==null||
+   m.away_penalties==null||
+   m.home_penalties===""||
+   m.away_penalties===""||
+   Number(m.home_penalties)===Number(m.away_penalties)
+  ){
+   return toast(
+    "Enter penalty scores with a winner before publishing this Knockout match.",
+    true
+   );
+  }
+ }
+
  const {error}=await sb.from("matches").update({
   published_at:new Date().toISOString(),
   status:"completed"
