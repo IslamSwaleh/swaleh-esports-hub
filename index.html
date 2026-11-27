@@ -1476,7 +1476,7 @@ async function advanceSwissTournament(tournamentId){
 
   if(!matches.length||!completed(matches))continue;
 
-  if(all.some(m=>m.stage===stage.next))return;
+ if(all.some(m=>m.stage===stage.next))continue;
 
   const winners=matches.map(m=>
    Number(m.home_score)>Number(m.away_score)
