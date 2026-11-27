@@ -63,7 +63,65 @@ th{color:var(--gold);font-family:Orbitron;font-size:12px}
 .modalbox{width:min(480px,100%);max-height:90vh;overflow:auto;background:#131313;border:1px solid var(--gold);border-radius:12px;padding:18px}
 .toast{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:#111;padding:12px 18px;border-radius:8px;z-index:20;max-width:90%}
 footer{text-align:center;color:#777;padding:25px;border-top:1px solid var(--line);margin-top:30px}
-@media(max-width:600px){.shell{padding:10px}.brand{font-size:19px}header{align-items:flex-start;flex-direction:column}.hero{padding:25px 10px}}
+/* SWALEH ESPORTS BRACKET */
+.view-switch{
+ display:flex;
+ gap:10px;
+ flex-wrap:wrap;
+ margin:14px 0;
+}
+.view-switch button.active{
+ background:var(--gold);
+ color:#111;
+}
+.bracket-scroll{
+ overflow-x:auto;
+ padding:15px 5px;
+}
+.bracket{
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ gap:18px;
+ min-width:max-content;
+}
+.bracket-round{
+ width:230px;
+ display:flex;
+ flex-direction:column;
+ gap:14px;
+}
+.bracket-round h3{
+ color:var(--gold);
+ text-align:center;
+ font-family:Orbitron;
+ font-size:13px;
+}
+.bracket-match{
+ background:linear-gradient(145deg,#201b08,#101010);
+ border:1px solid var(--line);
+ border-radius:10px;
+ padding:12px;
+}
+.bracket-team{
+ display:flex;
+ justify-content:space-between;
+ gap:8px;
+ padding:7px 0;
+ border-bottom:1px solid #443916;
+}
+.bracket-team:last-child{border-bottom:0}
+.bracket-team.winner{
+ color:var(--gold);
+ font-weight:700;
+}
+.bracket-trophy{
+ text-align:center;
+ color:var(--gold);
+ font:800 22px Orbitron;
+ padding:20px;
+}
+ @media(max-width:600px){.shell{padding:10px}.brand{font-size:19px}header{align-items:flex-start;flex-direction:column}.hero{padding:25px 10px}}
 </style>
 </head>
 
