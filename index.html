@@ -991,9 +991,15 @@ async function generateFixtures(tournamentId){
   .map(r=>r.gamer_id)
   .filter(Boolean))];
 
- if(tournament.format==="swiss" && ids.length!==36){
-  return toast("Swiss tournament requires exactly 36 registered gamers. Current: "+ids.length,true);
- }
+ if(
+ tournament.format==="knockout" &&
+ ![4,8,16,32,64].includes(ids.length)
+){
+ return toast(
+  "Knockout requires exactly 4, 8, 16, 32 or 64 gamers. Current: "+ids.length,
+  true
+ );
+}
 
  if(ids.length<2){
   return toast("At least two registered gamers are required.",true);
