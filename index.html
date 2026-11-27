@@ -1145,11 +1145,15 @@ function renderFixtures(){
  `).join(""):`<div class="empty">No fixtures available.</div>`;
 }
 
+
 async function openScoreForm(matchId){
  if(!requireAdmin())return;
 
  const m=state.matches.find(x=>x.id===matchId);
  if(!m)return;
+
+ const tournament=state.tournaments.find(t=>t.id===m.tournament_id);
+ const isFinal=tournament?.format==="swiss"&&m.stage==="final";
 
  openModal("ENTER MATCH RESULT",`
   <p>${esc(gamerName(m.home_gamer_id))} vs ${esc(gamerName(m.away_gamer_id))}</p>
@@ -1164,39 +1168,81 @@ async function openScoreForm(matchId){
      <input type="number" min="0" id="awayScore" required value="${m.away_score??""}">
     </div>
    </div>
+
+   ${isFinal?`
+    <p class="muted">If the Final is tied, enter penalty scores.</p>
+    <div class="formgrid">
+     <div class="field">
+      <label>Home Penalties</label>
+      <input type="number" min="0" id="homePenalties" value="${m.home_penalties??""}">
+     </div>
+     <div class="field">
+      <label>Away Penalties</label>
+      <input type="number" min="0" id="awayPenalties" value="${m.away_penalties??""}">
+     </div>
+    </div>
+   `:""}
+
    <button class="btn">Save Result</button>
   </form>
  `);
 
  $("scoreForm").addEventListener("submit",async e=>{
   e.preventDefault();
+
   const home=Number($("homeScore").value);
   const away=Number($("awayScore").value);
 
   if(home<0||away<0)return toast("Scores cannot be negative.",true);
 
+  let homePenalties=null;
+  let awayPenalties=null;
+
+  if(isFinal&&home===away){
+   const hp=$("homePenalties").value;
+   const ap=$("awayPenalties").value;
+
+   if(hp===""||ap===""){
+    return toast("Enter both penalty scores for the tied Final.",true);
+   }
+
+   homePenalties=Number(hp);
+   awayPenalties=Number(ap);
+
+   if(homePenalties<0||awayPenalties<0){
+    return toast("Penalty scores cannot be negative.",true);
+   }
+
+   if(homePenalties===awayPenalties){
+    return toast("Penalty scores must produce a winner.",true);
+   }
+  }
+
   const oldHome=m.home_score;
   const oldAway=m.away_score;
 
-const {data,error}=await sb.from("matches").update({
- home_score:home,
- away_score:away,
- status:"completed",
- published_at:null
-}).eq("id",matchId)
-.select("id,home_score,away_score");
+  const {data,error}=await sb.from("matches").update({
+   home_score:home,
+   away_score:away,
+   home_penalties:homePenalties,
+   away_penalties:awayPenalties,
+   status:"completed",
+   published_at:null
+  }).eq("id",matchId)
+  .select("id,home_score,away_score,home_penalties,away_penalties");
 
-if(error)return toast(error.message,true);
+  if(error)return toast(error.message,true);
 
-if(!data||!data.length){
- return toast("Score was not saved. Check your database permissions.",true);
-}
-state.matches=state.matches.map(x=>
- x.id===matchId?{...x,...data[0]}:x
-);
+  if(!data||!data.length){
+   return toast("Score was not saved. Check your database permissions.",true);
+  }
 
-renderFixtures();
-  // Record score change for accountability.
+  state.matches=state.matches.map(x=>
+   x.id===matchId?{...x,...data[0]}:x
+  );
+
+  renderFixtures();
+
   await sb.from("result_audit_logs").insert({
    match_id:matchId,
    previous_home_score:oldHome,
@@ -1213,6 +1259,7 @@ renderFixtures();
   await loadMatches();
  });
 }
+
 
 async function publishResult(matchId){
  if(!requireAdmin())return;
