@@ -1105,6 +1105,7 @@ async function loadMatches(){
 
 $("fixtureTournament").addEventListener("change",()=>{
  state.fixtureRound=1;
+ state.fixtureStage="swiss";
  renderFixtures();
 });
 $("standingTournament").addEventListener("change",renderStandings);
