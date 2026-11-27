@@ -1416,7 +1416,7 @@ const getAggregateWinners=matches=>{
  pairs.forEach((pair,index)=>{
   const slot=`${stage}-${round}-${index+1}`;
 
-  if(stage==="swiss"||stage==="replay"){
+  if(stage==="swiss"||stage==="final"||stage==="replay"){
    rows.push({
     tournament_id:tournamentId,
     home_gamer_id:pair[0],
