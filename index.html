@@ -1,4 +1,4 @@
-
+i
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1111,44 +1111,109 @@ function gamerName(id){
  return g?.full_name||"Unknown Gamer";
 }
 
+
 function renderFixtures(){
  const tournamentId=$("fixtureTournament").value;
+
  if(!tournamentId){
   $("fixtureList").innerHTML='<div class="empty">Select a tournament.</div>';
   return;
  }
 
- const matches=state.matches.filter(m=>
+ const allMatches=state.matches.filter(m=>
   m.tournament_id===tournamentId&&
   (state.isAdmin||m.published_at)
  );
 
- $("fixtureList").innerHTML=matches.length?matches.map(m=>`
+ if(!allMatches.length){
+  $("fixtureList").innerHTML='<div class="empty">No fixtures available.</div>';
+  return;
+ }
+
+ const rounds=[...new Set(
+  allMatches.map(m=>Number(m.round_number)||1)
+ )].sort((a,b)=>a-b);
+
+ if(!rounds.includes(state.fixtureRound)){
+  state.fixtureRound=rounds[0];
+ }
+
+ const currentRound=state.fixtureRound;
+ const matches=allMatches.filter(m=>
+  (Number(m.round_number)||1)===currentRound
+ );
+
+ $("fixtureList").innerHTML=`
   <div class="card">
-   <div class="row">
-   <span class="pill">${m.published_at?"PUBLISHED":esc(m.status||"SCHEDULED").toUpperCase()}</span>
-    <span class="muted">${esc(m.stage||"Match")} · Round ${m.round_number||1}</span>
+   <div class="row" style="justify-content:space-between;align-items:center;">
+    <button class="btn secondary small"
+     onclick="changeFixtureRound(-1)"
+     ${currentRound===rounds[0]?"disabled":""}>
+     Previous
+    </button>
+
+    <strong>ROUND ${currentRound}</strong>
+
+    <button class="btn small"
+     onclick="changeFixtureRound(1)"
+     ${currentRound===rounds[rounds.length-1]?"disabled":""}>
+     Next
+    </button>
    </div>
-   <div class="match">
-    <div class="team">${esc(gamerName(m.home_gamer_id))}</div>
-   <div class="score">
- ${m.home_score??"-"} : ${m.away_score??"-"}
- ${m.stage==="final"&&m.home_score!==null&&Number(m.home_score)===Number(m.away_score)&&m.home_penalties!=null&&m.away_penalties!=null
- ?`<small>(${m.home_penalties} pens - ${m.away_penalties} pens)</small>`
- :""}
-</div>
-    <div class="team">${esc(gamerName(m.away_gamer_id))}</div>
-   </div>
-   ${m.is_bye?'<p class="muted">BYE</p>':""}
-   ${state.isAdmin&&!m.is_bye?`
-    <div class="row">
-     <button class="btn small" onclick="openScoreForm('${m.id}')">Enter Score</button>
-     <button class="btn secondary small" onclick="publishResult('${m.id}')">Publish Result</button>
-    </div>
-   `:""}
+   <p class="muted" style="text-align:center;margin:8px 0 0;">
+    Round ${rounds.indexOf(currentRound)+1} of ${rounds.length}
+   </p>
   </div>
- `).join(""):`<div class="empty">No fixtures available.</div>`;
+
+  ${matches.map(m=>`
+   <div class="card">
+    <div class="row">
+     <span class="pill">${m.published_at?"PUBLISHED":esc(m.status||"SCHEDULED").toUpperCase()}</span>
+     <span class="muted">${esc(m.stage||"Match")} · Round ${m.round_number||1}</span>
+    </div>
+
+    <div class="match">
+     <div class="team">${esc(gamerName(m.home_gamer_id))}</div>
+     <div class="score">
+      ${m.home_score??"-"} : ${m.away_score??"-"}
+      ${m.stage==="final"&&m.home_score!==null&&Number(m.home_score)===Number(m.away_score)&&m.home_penalties!=null&&m.away_penalties!=null
+       ?`<small>(${m.home_penalties} pens - ${m.away_penalties} pens)</small>`
+       :""}
+     </div>
+     <div class="team">${esc(gamerName(m.away_gamer_id))}</div>
+    </div>
+
+    ${m.is_bye?'<p class="muted">BYE</p>':""}
+
+    ${state.isAdmin&&!m.is_bye?`
+     <div class="row">
+      <button class="btn small" onclick="openScoreForm('${m.id}')">Enter Score</button>
+      <button class="btn secondary small" onclick="publishResult('${m.id}')">Publish Result</button>
+     </div>
+    `:""}
+   </div>
+  `).join("")}
+ `;
 }
+
+function changeFixtureRound(direction){
+ const tournamentId=$("fixtureTournament").value;
+
+ const rounds=[...new Set(
+  state.matches
+   .filter(m=>m.tournament_id===tournamentId&&(state.isAdmin||m.published_at))
+   .map(m=>Number(m.round_number)||1)
+ )].sort((a,b)=>a-b);
+
+ const index=rounds.indexOf(state.fixtureRound);
+ const nextIndex=index+direction;
+
+ if(nextIndex<0||nextIndex>=rounds.length)return;
+
+ state.fixtureRound=rounds[nextIndex];
+ renderFixtures();
+}
+
 
 
 async function openScoreForm(matchId){
