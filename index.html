@@ -2739,6 +2739,266 @@ function renderStatistics(){
  `:'<div class="empty">No gamer statistics available yet.</div>';
 }
 
+let analyticsCharts = [];
+
+async function renderTournamentAnalytics(){
+ const select=$("analyticsTournament");
+ const container=$("analyticsContent");
+ if(!select||!container)return;
+
+ const tournamentId=select.value;
+
+ analyticsCharts.forEach(chart=>chart.destroy());
+ analyticsCharts=[];
+
+ if(!tournamentId){
+  container.innerHTML='<div class="empty">Select a tournament to view analytics.</div>';
+  return;
+ }
+
+ container.innerHTML='<div class="empty">Loading tournament analytics...</div>';
+
+ const {data:registrations,error}=await sb
+  .from("tournament_registrations")
+  .select("gamer_id")
+  .eq("tournament_id",tournamentId);
+
+ if(error){
+  container.innerHTML='<div class="empty">Could not load registrations: '+esc(error.message)+'</div>';
+  return;
+ }
+
+ // Ignore results if another tournament was selected.
+ if(select.value!==tournamentId)return;
+
+ const gamerIds=[...new Set((registrations||[]).map(r=>r.gamer_id))];
+
+ const gamers=state.gamers.filter(g=>gamerIds.includes(g.id));
+
+ const matches=state.matches.filter(m=>
+  m.tournament_id===tournamentId &&
+  !m.is_bye &&
+  m.published_at &&
+  m.home_score!==null &&
+  m.away_score!==null
+ );
+
+ const stats=gamers.map(g=>{
+  const played=matches.filter(m=>
+   m.home_gamer_id===g.id||m.away_gamer_id===g.id
+  );
+
+  let wins=0,draws=0,losses=0,goals=0,conceded=0;
+
+  played.forEach(m=>{
+   const home=m.home_gamer_id===g.id;
+   const own=Number(home?m.home_score:m.away_score);
+   const opp=Number(home?m.away_score:m.home_score);
+
+   goals+=own;
+   conceded+=opp;
+
+   if(own>opp)wins++;
+   else if(own<opp)losses++;
+   else draws++;
+  });
+
+  return {
+   id:g.id,
+   name:g.full_name,
+   played:played.length,
+   wins,draws,losses,
+   goals,conceded,
+   gd:goals-conceded,
+   points:wins*3+draws
+  };
+ }).sort((a,b)=>
+  b.points-a.points||b.gd-a.gd||b.goals-a.goals
+ );
+
+ const matchWins=matches.filter(m=>
+  Number(m.home_score)!==Number(m.away_score)
+ ).length;
+
+ const matchDraws=matches.length-matchWins;
+
+ const totalGoals=matches.reduce((sum,m)=>
+  sum+Number(m.home_score)+Number(m.away_score),0
+ );
+
+ const tournament=state.tournaments.find(t=>t.id===tournamentId);
+
+ const totalMatches=state.matches.filter(m=>
+  m.tournament_id===tournamentId&&!m.is_bye
+ ).length;
+
+ const remaining=Math.max(0,totalMatches-matches.length);
+
+ container.innerHTML=`
+  <h3 class="heading">${esc(tournament?.name||"Tournament")} ANALYTICS</h3>
+
+  <div class="grid">
+   <div class="card">
+    <div class="muted">Registered Gamers</div>
+    <div class="stat">${gamers.length}</div>
+   </div>
+   <div class="card">
+    <div class="muted">Published Matches</div>
+    <div class="stat">${matches.length}</div>
+   </div>
+   <div class="card">
+    <div class="muted">Total Goals</div>
+    <div class="stat">${totalGoals}</div>
+   </div>
+   <div class="card">
+    <div class="muted">Remaining Matches</div>
+    <div class="stat">${remaining}</div>
+   </div>
+  </div>
+
+  <div class="grid">
+   <div class="card">
+    <h3>Match Outcomes</h3>
+    <canvas id="analyticsOutcomes"></canvas>
+   </div>
+
+   <div class="card">
+    <h3>Match Progress</h3>
+    <canvas id="analyticsProgress"></canvas>
+   </div>
+
+   <div class="card">
+    <h3>Top Scorers</h3>
+    <canvas id="analyticsScorers"></canvas>
+   </div>
+
+   <div class="card">
+    <h3>Gamer Performance</h3>
+    <canvas id="analyticsPerformance"></canvas>
+   </div>
+
+   <div class="card">
+    <h3>Goals Scored vs Conceded</h3>
+    <canvas id="analyticsGoals"></canvas>
+   </div>
+  </div>
+
+  <div class="card">
+   <h3 class="heading">TOURNAMENT LEADERBOARD</h3>
+   <div class="tablewrap">
+    <table>
+     <thead>
+      <tr>
+       <th>#</th><th>Gamer</th><th>P</th>
+       <th>W</th><th>D</th><th>L</th>
+       <th>GF</th><th>GA</th><th>GD</th><th>PTS</th>
+      </tr>
+     </thead>
+     <tbody>
+      ${stats.map((p,i)=>`
+       <tr>
+        <td>${i+1}</td>
+        <td>${esc(p.name)}</td>
+        <td>${p.played}</td>
+        <td>${p.wins}</td>
+        <td>${p.draws}</td>
+        <td>${p.losses}</td>
+        <td>${p.goals}</td>
+        <td>${p.conceded}</td>
+        <td>${p.gd}</td>
+        <td><strong style="color:var(--gold)">${p.points}</strong></td>
+       </tr>
+      `).join("")}
+     </tbody>
+    </table>
+   </div>
+  </div>
+ `;
+
+ if(typeof Chart==="undefined"){
+  container.insertAdjacentHTML("afterbegin",
+   '<div class="notice">Chart library could not load. Please check your internet connection.</div>'
+  );
+  return;
+ }
+
+ const top=stats.slice(0,8);
+ const scorers=[...stats].sort((a,b)=>b.goals-a.goals).slice(0,8);
+
+ function makeChart(id,config){
+  const canvas=$(id);
+  if(!canvas)return;
+  analyticsCharts.push(new Chart(canvas,config));
+ }
+
+ makeChart("analyticsOutcomes",{
+  type:"pie",
+  data:{
+   labels:["Decisive Matches","Draws"],
+   datasets:[{
+    data:[matchWins,matchDraws],
+    backgroundColor:["#43c982","#f5c400"]
+   }]
+  },
+  options:{responsive:true,plugins:{legend:{position:"bottom"}}}
+ });
+
+ makeChart("analyticsProgress",{
+  type:"doughnut",
+  data:{
+   labels:["Published","Remaining"],
+   datasets:[{
+    data:[matches.length,remaining],
+    backgroundColor:["#43c982","#555"]
+   }]
+  },
+  options:{responsive:true,plugins:{legend:{position:"bottom"}}}
+ });
+
+ makeChart("analyticsScorers",{
+  type:"bar",
+  data:{
+   labels:scorers.map(p=>p.name),
+   datasets:[{
+    label:"Goals",
+    data:scorers.map(p=>p.goals),
+    backgroundColor:"#f5c400"
+   }]
+  },
+  options:{indexAxis:"y",responsive:true,scales:{x:{beginAtZero:true}}}
+ });
+
+ makeChart("analyticsPerformance",{
+  type:"bar",
+  data:{
+   labels:top.map(p=>p.name),
+   datasets:[
+    {label:"Wins",data:top.map(p=>p.wins),backgroundColor:"#43c982"},
+    {label:"Draws",data:top.map(p=>p.draws),backgroundColor:"#f5c400"},
+    {label:"Losses",data:top.map(p=>p.losses),backgroundColor:"#e74c3c"}
+   ]
+  },
+  options:{responsive:true,scales:{y:{beginAtZero:true}}}
+ });
+
+ makeChart("analyticsGoals",{
+  type:"bar",
+  data:{
+   labels:top.map(p=>p.name),
+   datasets:[
+    {label:"Goals Scored",data:top.map(p=>p.goals),backgroundColor:"#43c982"},
+    {label:"Goals Conceded",data:top.map(p=>p.conceded),backgroundColor:"#e74c3c"}
+   ]
+  },
+  options:{responsive:true,scales:{y:{beginAtZero:true}}}
+ });
+}
+
+$("analyticsTournament")?.addEventListener(
+ "change",
+ renderTournamentAnalytics
+);
+
 async function renderStandings(){
  const id=$("standingTournament").value;
 
