@@ -814,7 +814,13 @@ async function loadTournaments(){
   state.tournaments=data||[];
 
   console.log("TOURNAMENTS LOADED:",state.tournaments.length,data);
-
+console.log("CURRENT USER:", await sb.auth.getUser());
+console.log("ADMIN STATUS:", {
+  user: state.user?.id,
+  role: state.role,
+  superAdmin: state.isSuperAdmin,
+  adminError: state.adminCheckError
+});
   renderTournaments();
   fillTournamentSelects();
   updateOverview();
