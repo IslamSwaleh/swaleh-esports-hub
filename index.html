@@ -3051,8 +3051,8 @@ async function renderTournamentAnalytics(){
  if(trendSelect){
   trendSelect.innerHTML =
    '<option value="">Select Gamer</option>' +
-   stats.map(p =>
-    `<option value="${p.id}">${esc(p.name)}</option>`
+   gamers.map(g =>
+    `<option value="${g.id}">${esc(g.full_name)}</option>`
    ).join("");
 
   trendSelect.onchange = function(){
